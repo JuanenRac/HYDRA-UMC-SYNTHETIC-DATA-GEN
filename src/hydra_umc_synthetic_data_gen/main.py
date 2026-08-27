@@ -8,10 +8,13 @@
 Bare invocation prints identity/version/role, unchanged from the
 scaffolding stage. The real v0 work lives behind the `generate`
 subcommand: real procedural 2D scene generation (scene.py), real
-stdlib-only BMP rasterization (render.py), and real YOLO/COCO annotation
-export (export.py) - honestly a 2D placeholder pipeline, not the real
-photorealistic 3D rendering through HYDRA-UMC-TWIN's engine the README's
-own roadmap describes (that engine doesn't exist yet).
+stdlib-only BMP rasterization (render.py), real YOLO/COCO annotation
+export (export.py), a real dataset manifest with per-image checksums
+(manifest.py), and real post-generation validation of scene bounds,
+BMP integrity, and label distribution (validate.py) - honestly a 2D
+placeholder pipeline, not the real photorealistic 3D rendering through
+HYDRA-UMC-TWIN's engine the README's own roadmap describes (that engine
+doesn't exist yet).
 """
 from __future__ import annotations
 
@@ -22,8 +25,10 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from .export import Dataset, export_coco, export_yolo
+from .manifest import build_manifest, write_manifest
 from .render import render_bmp
-from .scene import generate_scene
+from .scene import DEFAULT_LABELS, generate_scene
+from .validate import validate_dataset
 
 PROJECT_NAME = "HYDRA-UMC-SYNTHETIC-DATA-GEN"
 DIST_NAME = "hydra-umc-synthetic-data-gen"
@@ -73,10 +78,37 @@ def _run_generate(args: argparse.Namespace) -> int:
     if args.format in ("coco", "both"):
         export_coco(dataset, out_dir / "annotations.json")
 
+    issues = validate_dataset(
+        dataset, images_dir, expected_labels=DEFAULT_LABELS, defect_rate=args.defect_rate
+    )
+    manifest = build_manifest(
+        dataset,
+        images_dir,
+        seed=args.seed,
+        width=args.width,
+        height=args.height,
+        requested_components=args.components,
+        defect_rate=args.defect_rate,
+        labels=DEFAULT_LABELS,
+        fmt=args.format,
+        issues=issues,
+    )
+    write_manifest(manifest, out_dir / "manifest.json")
+
     total_components = sum(len(scene.components) for _, scene in dataset.scenes)
     print(f"Generated {args.count} scene(s) -> {images_dir}")
     print(f"Total labeled components (incl. defects): {total_components}")
     print(f"Annotations exported as: {args.format}")
+    print(f"Reproducible seed: {'yes (seed=' + str(args.seed) + ')' if manifest.reproducible else 'no (random)'}")
+    print(f"Manifest written -> {out_dir / 'manifest.json'}")
+
+    if issues:
+        print(f"VALIDATION FAILED - {len(issues)} issue(s):")
+        for issue in issues:
+            print(f"  [{issue.kind}] {issue.detail}")
+        return 1
+
+    print("Validation: OK (scene bounds, BMP integrity, label distribution)")
     return 0
 
 

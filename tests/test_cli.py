@@ -46,8 +46,15 @@ def test_generate_real_end_to_end_dataset(tmp_path: Path, capsys: pytest.Capture
     coco = json.loads((out_dir / "annotations.json").read_text(encoding="utf-8"))
     assert len(coco["images"]) == 3
 
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["count"] == 3
+    assert len(manifest["scenes"]) == 3
+    assert manifest["validation_issues"] == []
+
     captured = capsys.readouterr()
     assert "Generated 3 scene(s)" in captured.out
+    assert "Manifest written" in captured.out
+    assert "Validation: OK" in captured.out
 
 
 def test_generate_is_reproducible_with_a_seed(tmp_path: Path) -> None:
@@ -60,6 +67,21 @@ def test_generate_is_reproducible_with_a_seed(tmp_path: Path) -> None:
     bmp_a = (out_a / "images" / "scene_0000.bmp").read_bytes()
     bmp_b = (out_b / "images" / "scene_0000.bmp").read_bytes()
     assert bmp_a == bmp_b
+
+    manifest_a = json.loads((out_a / "manifest.json").read_text(encoding="utf-8"))
+    manifest_b = json.loads((out_b / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest_a["reproducible"] is True
+    assert manifest_a["scenes"][0]["sha256"] == manifest_b["scenes"][0]["sha256"]
+
+
+def test_generate_without_a_seed_is_marked_not_reproducible(tmp_path: Path) -> None:
+    out_dir = tmp_path / "dataset"
+
+    main(["generate", "--out", str(out_dir), "--count", "1"])
+
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["seed"] is None
+    assert manifest["reproducible"] is False
 
 
 def test_generate_yolo_only_skips_coco(tmp_path: Path) -> None:

@@ -27,6 +27,7 @@ Risolve il problema del «cold start» per i nuovi componenti industriali o i ti
 * 📸 **Rendering multi-camera:** Genera viste simultanee da oltre 8 telecamere virtuali. *(pianificato - richiede il vero motore di rendering di HYDRA-UMC-TWIN)*
 * 🏷️ **Etichettatura automatica (v0):** Esportazione reale e perfetta al pixel in YOLO e COCO. *(implementato per YOLO/COCO; l'esportazione TFRecord è pianificata)*
 * 🛠️ **Iniezione di difetti (v0):** Sovrapposizione rettangolare reale e casuale per componente, con probabilità configurabile. *(implementato come una semplice sovrapposizione reale - vere forme di graffio/parte mancante/ponte di saldatura sono pianificate)*
+* 📋 **Manifesto del dataset e validazione (v0):** Ogni esecuzione di `generate` scrive un vero `manifest.json` (flag di seed riproducibile, parametri di generazione, e un vero checksum sha256 per immagine) ed esegue una vera validazione post-generazione - limiti di scena, integrità BMP rispetto al layout di file reale noto, e sanità della distribuzione delle etichette - uscendo con codice diverso da zero se viene trovato un problema reale.
 
 ---
 
@@ -51,6 +52,8 @@ flowchart LR
 * **Come si inserisce nel resto dell'ecosistema.** Renderizza dataset di addestramento (con annotazione automatica YOLO/COCO/TFRecord) tramite il motore proprio di HYDRA-UMC-TWIN, perché HYDRA-UMC-VISION-NODE e HYDRA-UMC-DETECTION-HEF si addestrino su di essi - dati sintetici invece di etichettare a mano filmati reali della camera.
 * **Perché v0 renderizza vere forme 2D segnaposto invece di aspettare HYDRA-UMC-TWIN.** HYDRA-UMC-TWIN (il proprio genitore di integrazione di questo progetto) è a sua volta ancora in fase di andamiaje - bloccare del tutto la generazione di dataset sul suo vero motore 3D lascerebbe non testata la pipeline di annotazione (la parte davvero difficile e riutilizzabile: posizionamento, etichettatura, esportazione YOLO/COCO). Un rasterizzatore BMP reale, solo stdlib, offre oggi dati reali e perfetti al pixel; sostituire in seguito il vero motore di TWIN cambia solo il modo in cui i pixel vengono dipinti, non i contratti `Scene`/`Component`/esportazione.
 * **Perché i bounding box sono perfetti al pixel per costruzione.** `export.py` legge esattamente le stesse coordinate di `Component` che `scene.py` ha posizionato e `render.py` ha dipinto - non c'è alcun modello di rilevamento né alcun passo di etichettatura manuale in questo ciclo v0 da cui le annotazioni potrebbero divergere.
+* **Perché la validazione riutilizza la formula di dimensione riga di `render.py` invece di un secondo parser indipendente.** `validate_bmp_integrity()` importa direttamente `_row_size()` da `render.py` invece di ri-derivare il calcolo del padding di riga BMP - un'unica fonte di verità per il layout esatto dei byte evita che un futuro cambiamento reale nello scrittore si desincronizzi silenziosamente dal validatore.
+* **Perché "riproducibile" è un campo del manifesto, non solo una proprietà implicita di `--seed`.** `--seed` rendeva già la generazione deterministica prima di questo cambiamento, ma nulla registrava se un dato dataset su disco avesse effettivamente usato un seed - un consumatore non aveva modo di distinguere a posteriori un'esecuzione riproducibile da una casuale. Il flag `reproducible` di `manifest.json` più un vero sha256 per immagine rende questa affermazione verificabile.
 
 ---
 
@@ -66,6 +69,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── scene.py          # Generazione reale di scene/componenti 2D procedurali
 │   ├── render.py          # Rasterizzazione BMP reale, solo stdlib
 │   ├── export.py           # Esportazione reale delle annotazioni YOLO/COCO
+│   ├── manifest.py           # Vero manifest.json del dataset (seed, checksum)
+│   ├── validate.py           # Vera validazione limiti/integrità BMP/distribuzione
 │   └── main.py               # Punto di ingresso + sottocomando reale `generate`
 ├── tests/               # Test reali: generazione, rendering, esportazione, CLI end-to-end
 ├── docs/                # Documentazione e guide procedurali
@@ -110,6 +115,33 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Scrive vere immagini BMP in `dataset/images/`, vere etichette YOLO in `dataset/labels/` + `dataset/classes.txt`, e/o un vero `dataset/annotations.json` in formato COCO, a seconda di `--format`. Un `--seed` dato rende il dataset riproducibile byte per byte.
+
+Ogni esecuzione scrive anche un vero `dataset/manifest.json` e valida il proprio output:
+
+```
+Generated 20 scene(s) -> dataset/images
+Total labeled components (incl. defects): 132
+Annotations exported as: both
+Reproducible seed: yes (seed=42)
+Manifest written -> dataset/manifest.json
+Validation: OK (scene bounds, BMP integrity, label distribution)
+```
+
+```json
+{
+  "seed": 42,
+  "reproducible": true,
+  "count": 20,
+  "scenes": [
+    { "image": "scene_0000.bmp", "num_components": 7,
+      "label_counts": {"bolt": 3, "gear": 2, "defect": 2},
+      "sha256": "7a422d05948fa43f04e738716883841ee1f493449c1023bc8dc711ffe7ffca2c" }
+  ],
+  "validation_issues": []
+}
+```
+
+Se la validazione trova un problema reale (un componente fuori intervallo, un BMP troncato/corrotto, o un tasso di difetti che si è discostato molto da `--defect-rate`), `generate` esce con codice `1` ed elenca ogni problema invece di consegnare silenziosamente un dataset difettoso.
 
 ---
 

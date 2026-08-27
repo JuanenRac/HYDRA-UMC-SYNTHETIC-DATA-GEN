@@ -30,6 +30,7 @@
 * 📸 **多摄像头渲染：** 同时从 8 个以上虚拟摄像头生成视图。*（计划中——需要 HYDRA-UMC-TWIN 的真实渲染引擎）*
 * 🏷️ **自动标注（v0）：** 真实的、像素级精确的 YOLO 和 COCO 导出。*（已为 YOLO/COCO 实现；TFRecord 导出计划中）*
 * 🛠️ **缺陷注入（v0）：** 每个组件真实的、随机的矩形叠加，概率可配置。*（已实现为简单的真实叠加——真实的划痕/缺失部件/焊桥形状计划中）*
+* 📋 **数据集清单与验证（v0）：** 每次 `generate` 运行都会写入一个真实的 `manifest.json`（可复现种子标志、生成参数，以及每张图像真实的 sha256 校验和），并运行真实的生成后验证——场景边界、针对已知真实文件布局的 BMP 完整性、以及标签分布的合理性——若发现任何真实问题，则以非零退出码退出。
 
 ---
 
@@ -54,6 +55,8 @@ flowchart LR
 * **这如何融入生态系统的其余部分。** 通过 HYDRA-UMC-TWIN 自身的引擎渲染训练数据集（带自动 YOLO/COCO/TFRecord 标注），供 HYDRA-UMC-VISION-NODE 和 HYDRA-UMC-DETECTION-HEF 用于训练——以合成数据取代手动标注真实摄像头画面。
 * **为何 v0 渲染真实的 2D 占位形状，而不是等待 HYDRA-UMC-TWIN。** HYDRA-UMC-TWIN（本项目自身的集成父项目）本身仍处于脚手架阶段——如果将数据集生成完全阻塞在它的真实 3D 引擎上，标注流水线（真正困难、可复用的部分：放置、标注、YOLO/COCO 导出）就得不到测试。一个真实的、仅依赖标准库的 BMP 光栅化器如今就能提供真实的、像素级精确的真值数据；日后替换为 TWIN 的真实引擎，改变的只是像素如何被绘制，而不是 `Scene`/`Component`/导出的契约。
 * **为何边界框在构造上就是像素级精确的。** `export.py` 读取的正是 `scene.py` 放置、`render.py` 绘制的同一组 `Component` 坐标——这个 v0 循环中没有任何检测模型，也没有任何人工标注步骤，标注不会有偏差的来源。
+* **为何验证复用 `render.py` 自身的行大小公式，而非使用第二个独立的解析器。** `validate_bmp_integrity()` 直接从 `render.py` 导入 `_row_size()`，而不是重新推导 BMP 行填充计算——对确切字节布局采用单一事实来源，可避免未来对写入器的真实改动在无声中与校验器失步。
+* **为何“可复现”是清单中的一个字段，而不仅是 `--seed` 隐含的一种属性。** 在此改动之前，`--seed` 已经使生成过程具有确定性，但没有任何记录能说明磁盘上某个数据集是否真的使用了种子——消费者事后无法区分一次可复现的运行和一次随机的运行。`manifest.json` 的 `reproducible` 标志加上每张图像真实的 sha256，使这一断言变得可核实。
 
 ---
 
@@ -68,6 +71,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── scene.py          # 真实的程序化 2D 场景/组件生成
 │   ├── render.py          # 真实的、仅依赖标准库的 BMP 光栅化
 │   ├── export.py           # 真实的 YOLO/COCO 标注导出
+│   ├── manifest.py           # 真实的数据集 manifest.json（种子、校验和）
+│   ├── validate.py           # 真实的边界/BMP 完整性/分布验证
 │   └── main.py               # 入口点 + 真实的 `generate` 子命令
 ├── tests/               # 真实测试：生成、渲染、导出、端到端 CLI
 ├── docs/                # 文档与程序化生成指南
@@ -117,6 +122,35 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 标注写入 `dataset/labels/` + `dataset/classes.txt`，和/或将真实的
 `dataset/annotations.json`（COCO 格式）写入磁盘。给定 `--seed` 可使数据
 集实现逐字节可复现。
+
+每次运行还会写入一个真实的 `dataset/manifest.json`，并验证自身的输出：
+
+```
+Generated 20 scene(s) -> dataset/images
+Total labeled components (incl. defects): 132
+Annotations exported as: both
+Reproducible seed: yes (seed=42)
+Manifest written -> dataset/manifest.json
+Validation: OK (scene bounds, BMP integrity, label distribution)
+```
+
+```json
+{
+  "seed": 42,
+  "reproducible": true,
+  "count": 20,
+  "scenes": [
+    { "image": "scene_0000.bmp", "num_components": 7,
+      "label_counts": {"bolt": 3, "gear": 2, "defect": 2},
+      "sha256": "7a422d05948fa43f04e738716883841ee1f493449c1023bc8dc711ffe7ffca2c" }
+  ],
+  "validation_issues": []
+}
+```
+
+如果验证发现真实问题（超出边界的组件、被截断/损坏的 BMP 文件，或缺陷率
+与 `--defect-rate` 出现严重偏离），`generate` 会以退出码 `1` 结束，并
+列出每一个问题，而不是悄悄交付一个有缺陷的数据集。
 
 ---
 

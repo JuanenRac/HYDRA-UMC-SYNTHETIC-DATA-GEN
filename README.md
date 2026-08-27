@@ -27,6 +27,7 @@ It solves the "cold start" problem for new industrial components or rare defect 
 * 📸 **Multi-Camera Rendering:** Generates simultaneous views from 8+ virtual cameras. *(planned - needs HYDRA-UMC-TWIN's real rendering engine)*
 * 🏷️ **Automatic Labeling (v0):** Real, pixel-perfect YOLO and COCO annotation export. *(implemented for YOLO/COCO; TFRecord export is planned)*
 * 🛠️ **Defect Injection (v0):** Real, randomized rectangular defect overlay per component, at a configurable probability. *(implemented as a simple real overlay - true scratch/missing-part/solder-bridge shapes are planned)*
+* 📋 **Dataset Manifest & Validation (v0):** Every `generate` run writes a real `manifest.json` (reproducible-seed flag, generation parameters, and a per-image sha256 checksum) and runs real post-generation validation - scene-bounds checking, BMP-integrity checking against the exact known-good file layout, and label-distribution sanity - exiting non-zero if any real issue is found.
 
 ---
 
@@ -51,6 +52,8 @@ flowchart LR
 * **How this fits the rest of the ecosystem.** Renders training datasets (with automatic YOLO/COCO/TFRecord annotation) through HYDRA-UMC-TWIN's own engine, for HYDRA-UMC-VISION-NODE and HYDRA-UMC-DETECTION-HEF to train against - synthetic data instead of hand-labeling real camera footage.
 * **Why v0 renders real 2D placeholder shapes instead of waiting for HYDRA-UMC-TWIN.** HYDRA-UMC-TWIN (this project's own integration parent) is itself still scaffolding - blocking dataset generation entirely on its real 3D engine would leave the annotation pipeline (the actually hard, reusable part: placement, labeling, YOLO/COCO export) untested. A real stdlib-only BMP rasterizer gives real, pixel-perfect ground truth today; swapping in TWIN's real renderer later only changes how pixels get painted, not the `Scene`/`Component`/export contracts.
 * **Why bounding boxes are pixel-perfect by construction.** `export.py` reads the exact same `Component` coordinates `scene.py` placed and `render.py` painted - there is no detection model or manual labeling step in this v0 loop for annotations to drift from.
+* **Why validation reuses `render.py`'s own row-size formula instead of a second, independent parser.** `validate_bmp_integrity()` imports `render.py`'s `_row_size()` directly rather than re-deriving the BMP row-padding math - one source of truth for the exact byte layout means a real future change to the writer can't silently desynchronize from the checker.
+* **Why "reproducible" is a manifest field, not just an unstated property of `--seed`.** `--seed` already made generation deterministic before this change, but nothing recorded whether a given dataset on disk actually used one - a consumer had no way to tell a reproducible run from a random one after the fact. `manifest.json`'s `reproducible` flag plus a real per-image sha256 makes that claim checkable.
 
 ---
 
@@ -66,6 +69,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── scene.py          # Real procedural 2D scene/component generation
 │   ├── render.py          # Real stdlib-only BMP rasterization
 │   ├── export.py           # Real YOLO/COCO annotation export
+│   ├── manifest.py           # Real dataset manifest.json (seed, checksums)
+│   ├── validate.py           # Real bounds/BMP-integrity/distribution checks
 │   └── main.py               # Entry point + real `generate` subcommand
 ├── tests/               # Real tests: generation, rendering, export, end-to-end CLI
 ├── docs/                # Documentation and procedural guides
@@ -110,6 +115,33 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Writes real BMP images to `dataset/images/`, real YOLO labels to `dataset/labels/` + `dataset/classes.txt`, and/or a real `dataset/annotations.json` in COCO format, depending on `--format`. A given `--seed` makes the dataset byte-for-byte reproducible.
+
+Every run also writes a real `dataset/manifest.json` and validates its own output:
+
+```
+Generated 20 scene(s) -> dataset/images
+Total labeled components (incl. defects): 132
+Annotations exported as: both
+Reproducible seed: yes (seed=42)
+Manifest written -> dataset/manifest.json
+Validation: OK (scene bounds, BMP integrity, label distribution)
+```
+
+```json
+{
+  "seed": 42,
+  "reproducible": true,
+  "count": 20,
+  "scenes": [
+    { "image": "scene_0000.bmp", "num_components": 7,
+      "label_counts": {"bolt": 3, "gear": 2, "defect": 2},
+      "sha256": "7a422d05948fa43f04e738716883841ee1f493449c1023bc8dc711ffe7ffca2c" }
+  ],
+  "validation_issues": []
+}
+```
+
+If validation finds a real problem (an out-of-range component, a truncated/corrupt BMP, or a defect rate that drifted far from `--defect-rate`), `generate` exits `1` and lists every issue instead of silently shipping a bad dataset.
 
 ---
 
