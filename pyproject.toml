@@ -6,8 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-only" }
 authors = [{ name = "JuanenRac", email = "electrohobby3d@gmail.com" }]
-# No runtime dependencies yet - this is the skeleton stage (see
-# SONNET/HYDRA-UMC-SYNTHETIC-DATA-GEN/mejoras_futuras.txt). Planned once real
+# No runtime dependencies yet - this is the bootstrap stage. Planned once real
 # business logic lands: a scene-graph/render binding to the HYDRA-UMC-TWIN
 # renderer, numpy (procedural randomization), Pillow (image export), and
 # pycocotools/pyyaml for YOLO/COCO/TFRecord annotation export.

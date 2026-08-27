@@ -64,7 +64,7 @@ flowchart LR
 
 純粋なソフトウェアのデータセットジェネレーターであり、独自のハード
 ウェア設計を持たないため、本プロジェクトは `hardware/`、`firmware/`、
-`os/` フォルダを携えていません（`SONNET/5.PLAN_EJECUCION_32_PROYECTOS_NUEVOS.txt` 内のフォルダ省略ルールを参照）。
+`os/` フォルダを携えておらず、リポジトリ構造ポリシーに従っています。
 
 ```text
 HYDRA-UMC-SYNTHETIC-DATA-GEN/
@@ -222,3 +222,14 @@ YOLO ラベルを `dataset/labels/` + `dataset/classes.txt` に、および/ま�
 
 ## 📜 ライセンス
 GPL-3.0 —— 詳細は LICENSE を参照してください。
+
+## 🛠️ BUILD & RUN
+
+リリースビルドの前に、バージョンを変更しないビルドチェックを使用してください。
+
+| 操作 | Windows | Linux / macOS |
+|---|---|---|
+| ビルドチェック（バージョンと CHANGELOG を変更しない） | `build-test.bat` | `./build-test.sh` |
+| 実行 / 開発（提供されている場合） | `run*.bat` または `dev*.bat` | `./run*.sh` または `./dev*.sh` |
+
+`build-test.bat` と `build-test.sh` は、`hydra-umc.project.json` をインクリメントせず、`CHANGELOG.md` も変更せずにプロジェクトのスタックをコンパイルまたは検証します。通常のコンパイラ出力だけが作成される場合があります。既存の `build*.bat`、`build*.sh`、`run*`、`dev*` は、各プロジェクト固有のバージョン化または実行時の動作を維持します。その動作が必要な場合はそれらを使用してください。
