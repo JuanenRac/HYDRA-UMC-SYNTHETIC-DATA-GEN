@@ -1,0 +1,27 @@
+[project]
+name = "hydra-umc-synthetic-data-gen"
+version = "0.0.4"
+description = "Procedural generator of training datasets for HYDRA-UMC Vision nodes, rendered through the Digital Twin's physics/rendering engine with automatic pixel-perfect annotation."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-only" }
+authors = [{ name = "JuanenRac", email = "electrohobby3d@gmail.com" }]
+# No runtime dependencies yet - this is the skeleton stage (see
+# SONNET/HYDRA-UMC-SYNTHETIC-DATA-GEN/mejoras_futuras.txt). Planned once real
+# business logic lands: a scene-graph/render binding to the HYDRA-UMC-TWIN
+# renderer, numpy (procedural randomization), Pillow (image export), and
+# pycocotools/pyyaml for YOLO/COCO/TFRecord annotation export.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+hydra-umc-synthetic-data-gen = "hydra_umc_synthetic_data_gen.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
