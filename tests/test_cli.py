@@ -91,3 +91,23 @@ def test_generate_yolo_only_skips_coco(tmp_path: Path) -> None:
 
     assert (out_dir / "classes.txt").is_file()
     assert not (out_dir / "annotations.json").exists()
+
+
+@pytest.mark.parametrize(
+    "arguments, message",
+    [
+        (["--count", "0"], "--count must be"),
+        (["--width", "15"], "--width must be"),
+        (["--height", "4097"], "--height must be"),
+        (["--components", "0"], "--components must be"),
+        (["--defect-rate", "nan"], "--defect-rate must be"),
+        (["--defect-rate", "1.1"], "--defect-rate must be"),
+    ],
+)
+def test_generate_rejects_invalid_resource_or_probability_settings(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], arguments: list[str], message: str
+) -> None:
+    exit_code = main(["generate", "--out", str(tmp_path / "dataset"), *arguments])
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert message in captured.err

@@ -19,6 +19,7 @@ doesn't exist yet).
 from __future__ import annotations
 
 import argparse
+import math
 import random
 import sys
 from importlib.metadata import PackageNotFoundError, version
@@ -36,6 +37,10 @@ ROLE = (
     "Procedural generator of training datasets for Vision nodes, rendered "
     "through the Digital Twin's physics/rendering engine."
 )
+MIN_DIMENSION = 16
+MAX_DIMENSION = 4096
+MAX_SCENES = 10_000
+MAX_COMPONENTS = 1_000
 
 
 def get_version() -> str:
@@ -53,6 +58,21 @@ def _print_identity() -> None:
 
 
 def _run_generate(args: argparse.Namespace) -> int:
+    errors: list[str] = []
+    if not 1 <= args.count <= MAX_SCENES:
+        errors.append(f"--count must be in 1..{MAX_SCENES}")
+    for label, value in (("--width", args.width), ("--height", args.height)):
+        if not MIN_DIMENSION <= value <= MAX_DIMENSION:
+            errors.append(f"{label} must be in {MIN_DIMENSION}..{MAX_DIMENSION}")
+    if not 1 <= args.components <= MAX_COMPONENTS:
+        errors.append(f"--components must be in 1..{MAX_COMPONENTS}")
+    if not math.isfinite(args.defect_rate) or not 0.0 <= args.defect_rate <= 1.0:
+        errors.append("--defect-rate must be a finite value in 0.0..1.0")
+    if errors:
+        for error in errors:
+            print(f"error: {error}", file=sys.stderr)
+        return 2
+
     out_dir = args.out
     images_dir = out_dir / "images"
     scenes: list[tuple[str, object]] = []

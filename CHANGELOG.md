@@ -20,6 +20,16 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.6] - Bounded dataset generation inputs
+
+- **`main.py`** - `generate` rejects zero/oversized scene counts,
+  dimensions outside 16..4096, invalid component counts and non-finite or
+  out-of-range defect probabilities before it creates output files. This
+  keeps malformed automation from producing invalid scenes or exhausting
+  host resources.
+- Added CLI regression coverage for each rejected input category.
+- 41/41 tests passing.
+
 ## [0.0.5] - Reproducible-seed manifest and real output validation
 
 - **`manifest.py`** - a real `manifest.json` is now written into every `generate` output directory: `seed`, a `reproducible` flag (true only when a `--seed` was given), the requested generation parameters, and one entry per scene with its label counts and a real sha256 checksum of the rendered BMP bytes. Reproducibility was already true in practice (`--seed` already drove a deterministic `random.Random` per scene) but was never a recorded, checkable claim - now two runs with the same seed can be proven byte-identical by comparing checksums instead of re-rendering and diffing files by hand.
