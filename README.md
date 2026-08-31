@@ -85,7 +85,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 
 ---
 
-## 🏗️ BUILD AND RUN
+## 🏗️ BUILD AND RUN GUIDE
 
 Requires Python 3.10+.
 
