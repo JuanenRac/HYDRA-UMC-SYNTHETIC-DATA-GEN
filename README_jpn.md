@@ -72,6 +72,7 @@ flowchart LR
 ```text
 HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── src/hydra_umc_synthetic_data_gen/
+│   ├── __init__.py            # パッケージバージョン
 │   ├── scene.py          # 実際のプロシージャルな 2D シーン/コンポーネント生成
 │   ├── render.py          # 実際の、標準ライブラリのみによる BMP ラスタライズ
 │   ├── export.py           # 実際の YOLO/COCO アノテーションエクスポート
@@ -82,9 +83,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── docs/                # ドキュメントとプロシージャル生成ガイド
 ├── build/               # ビルド出力（ローカルの .venv もリポジトリルートに存在）
 ├── images/              # メディアと図表
-├── scripts/             # ユーティリティスクリプト
+├── tools/               # ci_validate.py —— CI が使用する manifest/CHANGELOG/docs の検証
 ├── pyproject.toml       # パッケージメタデータ、依存関係、オドメーターバージョン
 ├── bump_version.py      # オドメーター式バージョンインクリメント（build.sh/.bat が使用）
+├── bump_manifest_version.py # hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
 ├── build.sh / build.bat # venv + editable インストール（dev エクストラ付き）+ 実際のテスト + コンパイルチェック
 └── run.sh / run.bat     # ローカル venv からエントリポイントを実行（引数を転送、例：`generate`）
 ```

@@ -66,6 +66,7 @@ der Repository-Strukturpolitik.
 ```text
 HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── src/hydra_umc_synthetic_data_gen/
+│   ├── __init__.py            # Paketversion
 │   ├── scene.py          # Echte prozedurale Generierung von 2D-Szenen/-Komponenten
 │   ├── render.py          # Echte, rein stdlib-basierte BMP-Rasterisierung
 │   ├── export.py           # Echter YOLO-/COCO-Annotationsexport
@@ -76,9 +77,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── docs/                # Dokumentation und prozedurale Anleitungen
 ├── build/               # Build-Ausgabe (das lokale .venv liegt ebenfalls im Repo-Root)
 ├── images/              # Medien und Diagramme
-├── scripts/             # Utility-Skripte
+├── tools/               # ci_validate.py - Manifest-/CHANGELOG-/Doku-Validierung, von der CI genutzt
 ├── pyproject.toml       # Paket-Metadaten, Abhängigkeiten, Kilometerzähler-Version
 ├── bump_version.py      # Kilometerzähler-artiger Versions-Bump (von build.sh/.bat verwendet)
+├── bump_manifest_version.py # Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)
 ├── build.sh / build.bat # venv + editierbare Installation (mit Dev-Extras) + echte Tests + Compile-Check
 └── run.sh / run.bat     # Führt den Einstiegspunkt aus dem lokalen venv aus (leitet Argumente weiter, z. B. `generate`)
 ```

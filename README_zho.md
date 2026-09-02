@@ -68,6 +68,7 @@ flowchart LR
 ```text
 HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── src/hydra_umc_synthetic_data_gen/
+│   ├── __init__.py            # 包版本
 │   ├── scene.py          # 真实的程序化 2D 场景/组件生成
 │   ├── render.py          # 真实的、仅依赖标准库的 BMP 光栅化
 │   ├── export.py           # 真实的 YOLO/COCO 标注导出
@@ -78,9 +79,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── docs/                # 文档与程序化生成指南
 ├── build/               # 构建输出（本地 .venv 也位于仓库根目录）
 ├── images/              # 媒体与图表
-├── scripts/             # 实用脚本
+├── tools/               # ci_validate.py——CI 使用的 manifest/CHANGELOG/docs 校验
 ├── pyproject.toml       # 包元数据、依赖项、里程表版本号
 ├── bump_version.py      # 里程表式版本递增（由 build.sh/.bat 使用）
+├── bump_manifest_version.py # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ├── build.sh / build.bat # venv + 可编辑安装（含 dev 附加依赖）+ 真实测试 + 编译检查
 └── run.sh / run.bat     # 从本地 venv 运行入口点（转发参数，例如 `generate`）
 ```

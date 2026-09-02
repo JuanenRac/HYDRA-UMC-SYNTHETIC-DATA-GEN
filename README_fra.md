@@ -66,6 +66,7 @@ matérielle propre - ce projet ne comporte donc pas de dossiers
 ```text
 HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── src/hydra_umc_synthetic_data_gen/
+│   ├── __init__.py            # Version du paquet
 │   ├── scene.py          # Génération réelle de scènes/composants 2D procéduraux
 │   ├── render.py          # Rastérisation BMP réelle, stdlib uniquement
 │   ├── export.py           # Export réel des annotations YOLO/COCO
@@ -76,9 +77,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── docs/                # Documentation et guides procéduraux
 ├── build/               # Sortie de build (le .venv local vit aussi à la racine du dépôt)
 ├── images/              # Médias et diagrammes
-├── scripts/             # Scripts utilitaires
+├── tools/               # ci_validate.py - validation manifest/CHANGELOG/docs utilisée par la CI
 ├── pyproject.toml       # Métadonnées du paquet, dépendances, version compteur kilométrique
 ├── bump_version.py      # Incrément de version type compteur kilométrique (utilisé par build.sh/.bat)
+├── bump_manifest_version.py # Synchronise la version de hydra-umc.project.json avec la version native (--sync)
 ├── build.sh / build.bat # venv + installation éditable (avec extras dev) + tests réels + compile-check
 └── run.sh / run.bat     # Exécute le point d'entrée depuis le venv local (transmet les arguments, ex. `generate`)
 ```
