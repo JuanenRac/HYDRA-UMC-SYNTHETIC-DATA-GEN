@@ -34,7 +34,7 @@ Bare invocation (no subcommand) prints identity/version/role and exits `0`:
 
 ```
 $ hydra-umc-synthetic-data-gen
-HYDRA-UMC-SYNTHETIC-DATA-GEN v0.0.5
+HYDRA-UMC-SYNTHETIC-DATA-GEN v0.0.6
 Procedural generator of training datasets for Vision nodes, rendered through the Digital Twin's physics/rendering engine.
 ```
 
@@ -281,13 +281,33 @@ $ echo $?
 2
 ```
 
+#### Out-of-range generation inputs (bounded since v0.0.6)
+
+`_run_generate()` rejects a zero/oversized `--count` (must be
+`1..10000`), a `--width`/`--height` outside `16..4096`, a zero/oversized
+`--components` (must be `1..1000`), and a non-finite or out-of-`0.0..1.0`
+`--defect-rate` — checked before any file is created, so a malformed
+automated call can't produce invalid scenes or exhaust host resources.
+Every violated bound is reported, not just the first one:
+
+```
+$ hydra-umc-synthetic-data-gen generate --out ./out-bounds --count 0 --width 8 --height 5000 --components 0 --defect-rate 5
+error: --count must be in 1..10000
+error: --width must be in 16..4096
+error: --height must be in 16..4096
+error: --components must be in 1..1000
+error: --defect-rate must be a finite value in 0.0..1.0
+$ echo $?
+2
+```
+
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
 | `0` | scenes generated, annotations exported, manifest written, and real post-generation validation found no issues |
 | `1` | generation and export completed, but real validation found one or more issues (out-of-bounds components, BMP integrity, or label distribution) — the manifest and every file are still written |
-| `2` | argparse usage error — a missing required flag or an invalid `--format` choice |
+| `2` | argparse usage error (missing required flag, invalid `--format` choice) or a `--count`/`--width`/`--height`/`--components`/`--defect-rate` value outside its allowed range |
 
 ## Not yet implemented
 

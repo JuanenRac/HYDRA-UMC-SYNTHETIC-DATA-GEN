@@ -122,7 +122,7 @@ Chaque exécution écrit aussi un vrai `dataset/manifest.json` et valide sa prop
 
 ```
 Generated 20 scene(s) -> dataset/images
-Total labeled components (incl. defects): 132
+Total labeled components (incl. defects): 150
 Annotations exported as: both
 Reproducible seed: yes (seed=42)
 Manifest written -> dataset/manifest.json
@@ -136,8 +136,8 @@ Validation: OK (scene bounds, BMP integrity, label distribution)
   "count": 20,
   "scenes": [
     { "image": "scene_0000.bmp", "num_components": 7,
-      "label_counts": {"bolt": 3, "gear": 2, "defect": 2},
-      "sha256": "7a422d05948fa43f04e738716883841ee1f493449c1023bc8dc711ffe7ffca2c" }
+      "label_counts": {"bracket": 1, "bolt": 2, "gear": 2, "defect": 1, "connector": 1},
+      "sha256": "2301c6974673d9f6a408d7a4b746d236d0ec98b535064884b7a3929645a8f2eb" }
   ],
   "validation_issues": []
 }
