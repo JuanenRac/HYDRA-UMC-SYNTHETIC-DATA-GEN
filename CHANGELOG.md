@@ -20,6 +20,25 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.7]
+
+- **Fixed a real bug found by an ecosystem-wide bug audit: a small scene
+  could always generate components larger than the canvas itself.**
+  `generate_scene()`'s own `min_size`/`max_size` (defaults 16/48) were
+  never compared against the real `width`/`height` being generated, and
+  aren't exposed as CLI flags either - `main.py`'s own `MIN_DIMENSION`
+  only validates that width/height are at least 16, never that they're
+  large enough for a real component to actually fit. A CLI-accepted
+  scene as small as `--width 20 --height 20` could produce a component
+  wider/taller than the canvas, always position-clamped to `x=0`/`y=0`
+  and overflowing the edge - `validate_scene_bounds` correctly caught it
+  as `out_of_bounds`, but only after the invalid image/annotation files
+  were already written to disk. `generate_scene()` now clamps both
+  `min_size` and `max_size` to the real scene dimensions itself before
+  ever picking a component size, so no caller (CLI or direct) can
+  produce an out-of-canvas component regardless of what it passes. New
+  regression test sweeping 50 seeds against a real 20x20 scene.
+
 ## [0.0.6] - Bounded dataset generation inputs
 
 - **`main.py`** - `generate` rejects zero/oversized scene counts,

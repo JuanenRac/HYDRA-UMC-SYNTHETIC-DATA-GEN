@@ -63,9 +63,29 @@ def generate_scene(
     background_color = (rng.randint(180, 230),) * 3
     components: list[Component] = []
 
+    # Real bug found by an ecosystem-wide audit: min_size/max_size are
+    # never compared against the scene's own real width/height (and
+    # aren't exposed as CLI flags at all, so a caller can't work around
+    # it either) - main.py's own MIN_DIMENSION only validates width/
+    # height, never that they're large enough for a component to
+    # actually fit. A small scene (e.g. 20x20, a real value main.py's own
+    # validation accepts since MIN_DIMENSION=16) with the real default
+    # max_size=48 produced components wider/taller than the canvas
+    # itself, always clamped to x=0/y=0 by the position clamp below,
+    # sitting flush against the edge and overflowing it - both a wrong
+    # dataset (validate_scene_bounds correctly rejects it as
+    # out_of_bounds, but only AFTER the invalid files were already
+    # written to disk) and, had that check been looser, a real invalid
+    # YOLO annotation (a normalized width/height ratio over 1.0). Clamp
+    # both to the real scene dimensions here, once, so no caller of this
+    # function - CLI or direct - can ever produce an out-of-canvas
+    # component regardless of what min_size/max_size it passes.
+    effective_max_size = max(1, min(max_size, width, height))
+    effective_min_size = min(min_size, effective_max_size)
+
     for _ in range(num_components):
-        w = rng.randint(min_size, max_size)
-        h = rng.randint(min_size, max_size)
+        w = rng.randint(effective_min_size, effective_max_size)
+        h = rng.randint(effective_min_size, effective_max_size)
         x = rng.randint(0, max(0, width - w))
         y = rng.randint(0, max(0, height - h))
         label = rng.choice(labels)
