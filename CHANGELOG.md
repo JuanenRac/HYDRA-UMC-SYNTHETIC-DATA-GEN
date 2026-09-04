@@ -20,6 +20,15 @@ semantic-versioning judgment calls:
 
 ---
 
+## CI - real pytest suite now actually runs
+
+- **`.github/workflows/ci.yml`** - the real `tests/` pytest suite is now
+  actually installed and run in CI. The baseline workflow's Python
+  handling previously only compile-checked (`py_compile`) every `.py`
+  file and validated the manifest/docs - it never ran `pytest`, so a
+  regression in `tests/` could be merged without CI ever failing.
+  CI-only fix, no runtime code changed, no version bump.
+
 ## [0.0.7]
 
 - **Fixed a real bug found by an ecosystem-wide bug audit: a small scene
