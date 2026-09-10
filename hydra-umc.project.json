@@ -8,7 +8,7 @@
   "technologies": [
     "Python",
     "procedural scene generation",
-    "YOLO/COCO/TFRecord export"
+    "YOLO/COCO annotation export"
   ],
   "deployment_target": "cm5",
   "maturity": "established",
