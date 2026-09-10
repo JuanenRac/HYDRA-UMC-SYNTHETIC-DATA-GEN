@@ -34,7 +34,7 @@ Bare invocation (no subcommand) prints identity/version/role and exits `0`:
 
 ```
 $ hydra-umc-synthetic-data-gen
-HYDRA-UMC-SYNTHETIC-DATA-GEN v0.0.6
+HYDRA-UMC-SYNTHETIC-DATA-GEN v0.0.7
 Procedural generator of training datasets for Vision nodes, rendered through the Digital Twin's physics/rendering engine.
 ```
 
