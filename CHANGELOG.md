@@ -29,7 +29,7 @@ semantic-versioning judgment calls:
 
 ## [0.0.7]
 
-- **Fixed a real bug found by an ecosystem-wide bug audit: a small scene
+- **Fixed a real bug found while auditing the code: a small scene
   could always generate components larger than the canvas itself.**
   `generate_scene()`'s own `min_size`/`max_size` (defaults 16/48) were
   never compared against the real `width`/`height` being generated, and
