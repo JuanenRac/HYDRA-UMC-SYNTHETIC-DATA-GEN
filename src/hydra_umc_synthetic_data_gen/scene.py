@@ -63,7 +63,7 @@ def generate_scene(
     background_color = (rng.randint(180, 230),) * 3
     components: list[Component] = []
 
-    # Real bug found by an ecosystem-wide audit: min_size/max_size are
+    # Real bug found while auditing the code: min_size/max_size are
     # never compared against the scene's own real width/height (and
     # aren't exposed as CLI flags at all, so a caller can't work around
     # it either) - main.py's own MIN_DIMENSION only validates width/

@@ -35,7 +35,7 @@ def test_components_stay_within_canvas_bounds() -> None:
 
 
 def test_components_stay_within_a_small_canvas_smaller_than_default_max_size() -> None:
-    # Real bug found by an ecosystem-wide audit: a small scene (real,
+    # Real bug found while auditing the code: a small scene (real,
     # CLI-accepted dimensions - main.py's own MIN_DIMENSION is 16) with
     # the real default max_size=48 used to produce components wider/
     # taller than the canvas itself, always clamped to x=0/y=0 and
