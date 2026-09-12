@@ -14,13 +14,15 @@
   <img src="https://img.shields.io/badge/Target-Nodo%20Vision%20AI-green.svg" alt="Target">
 </p>
 
+**Comprobación de honestidad - qué funciona realmente hoy:** la generación procedural de escenas 2D con colocación/tamaño/color determinista por semilla (`scene.py`), el rasterizado real BMP de 24 bits solo con la librería estándar - rectángulos planos, no renderizado fotorrealista (`render.py`), la exportación real de anotaciones YOLO y COCO perfecta a nivel de píxel - las bounding boxes salen directamente de las mismas coordenadas que colocó la escena y pintó el renderizador, así que no hay ningún modelo de detección de por medio que pueda ser impreciso (`export.py`), la superposición real de defectos rectangulares aleatorios, y un `manifest.json` real más validación real tras la generación (límites de escena, integridad BMP, sanidad de distribución de etiquetas) son todos reales y están testeados (42 tests, `pytest`). Lo que NO es real: el renderizado 3D fotorrealista, las máscaras de segmentación, los puntos clave, las vistas multi-cámara y la exportación a TFRecord - todo esto necesita el motor real de física/renderizado de HYDRA-UMC-TWIN, que todavía no existe (ese proyecto sigue siendo scaffolding), o (TFRecord) una dependencia real de TensorFlow que esta v0 deliberadamente no asume. Ver `CHANGELOG.md` para lo que se ha entregado exactamente hasta ahora, y el ROADMAP más abajo para lo que queda abierto.
+
 ---
 
 ## 1. 🛠️ VISIÓN GENERAL TÉCNICA
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** es la fábrica de datos para el Nodo Vision AI. Aprovecha los motores de física y renderizado del Digital Twin para generar proceduralmente miles de imágenes etiquetadas para el entrenamiento de redes neuronales.
 
-Resuelve el problema del "arranque en frío" para nuevos componentes industriales o tipos de defectos raros mediante la creación de escenarios 3D fotorrealistas con anotación automática perfecta a nivel de píxel (bounding boxes, máscaras de segmentación y puntos clave).
+Resuelve el problema del "arranque en frío" para nuevos componentes industriales o tipos de defectos raros con anotación automática de bounding boxes perfecta a nivel de píxel. Los escenarios 3D fotorrealistas, las máscaras de segmentación y los puntos clave son el objetivo una vez exista el motor real de física/renderizado de HYDRA-UMC-TWIN (ver las salvedades de Key Features y la Comprobación de honestidad más abajo para lo que funciona hoy: renderizado real de formas 2D de marcador, no 3D).
 
 ### Características Clave:
 * 🎲 **Escenarios Procedurales (v0):** Aleatorización real y determinista (con semilla) de la posición, tamaño y color de componentes 2D. *(implementado como formas 2D reales de marcador de posición, todavía no poses/iluminación/texturas 3D a través del motor de HYDRA-UMC-TWIN - ver BUILD Y RUN abajo)*

@@ -14,13 +14,15 @@
   <img src="https://img.shields.io/badge/Cible-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
+**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la génération procédurale de scènes 2D avec placement/taille/couleur déterministe par graine (`scene.py`), la rastérisation BMP 24 bits réelle avec la seule bibliothèque standard - des rectangles à plat, pas un rendu photoréaliste (`render.py`), l'export réel d'annotations YOLO et COCO parfait au pixel près - les boîtes de délimitation proviennent directement des mêmes coordonnées que la scène a placées et que le rendu a peintes, il n'y a donc aucun modèle de détection dans la boucle qui pourrait être imprécis (`export.py`), la superposition réelle de défauts rectangulaires aléatoires, et un vrai `manifest.json` plus une validation réelle post-génération (limites de scène, intégrité BMP, cohérence de distribution des étiquettes) sont tous réels et testés (42 tests, `pytest`). Ce qui n'est PAS réel : le rendu 3D photoréaliste, les masques de segmentation, les points clés, les vues multi-caméras et l'export TFRecord - tout cela nécessite le véritable moteur physique/de rendu de HYDRA-UMC-TWIN, qui n'existe pas encore (ce projet est lui-même toujours au stade d'ébauche), ou (TFRecord) une véritable dépendance TensorFlow que cette v0 n'assume délibérément pas. Voir `CHANGELOG.md` pour ce qui a été livré exactement jusqu'à présent, et la FEUILLE DE ROUTE ci-dessous pour ce qui reste ouvert.
+
 ---
 
 ## 1. 🛠️ APERÇU TECHNIQUE
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** est l'usine de données pour le nœud Vision AI. Il exploite les moteurs de physique et de rendu du jumeau numérique pour générer de manière procédurale des milliers d'images étiquetées pour l'entraînement des réseaux neuronaux.
 
-Il résout le problème du « démarrage à froid » pour les nouveaux composants industriels ou les types de défauts rares en créant des scénarios 3D photoréalistes avec une annotation automatique parfaite au pixel près (boîtes de délimitation, masques de segmentation et points clés).
+Il résout le problème du « démarrage à froid » pour les nouveaux composants industriels ou les types de défauts rares avec une annotation automatique de boîtes de délimitation parfaite au pixel près. Les scénarios 3D photoréalistes, les masques de segmentation et les points clés sont l'objectif visé une fois que le véritable moteur physique/de rendu de HYDRA-UMC-TWIN existera (voir les réserves de Key Features et la Vérification d'honnêteté ci-dessous pour ce qui fonctionne réellement aujourd'hui : un rendu réel de formes 2D de substitution, pas en 3D).
 
 ### Caractéristiques principales :
 * 🎲 **Scénarios procéduraux (v0) :** Randomisation réelle et déterministe (à partir d'une graine) de la position, la taille et la couleur de composants 2D. *(implémenté comme de vraies formes 2D de substitution, pas encore de poses/éclairage/textures 3D via le moteur de HYDRA-UMC-TWIN - voir BUILD ET RUN ci-dessous)*

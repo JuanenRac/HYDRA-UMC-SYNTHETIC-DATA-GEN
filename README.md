@@ -14,13 +14,15 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
+**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), real randomized rectangular defect overlay, and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (42 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
+
 ---
 
 ## 1. 🛠️ TECHNICAL OVERVIEW
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** is the data factory for the Vision AI Node. It leverages the Digital Twin's physics and rendering engines to procedurally generate thousands of labeled images for training neural networks.
 
-It solves the "cold start" problem for new industrial components or rare defect types by creating photorealistic 3D scenarios with automatic pixel-perfect annotation (bounding boxes, segmentation masks, and keypoints).
+It solves the "cold start" problem for new industrial components or rare defect types with automatic pixel-perfect bounding-box annotation. Photorealistic 3D scenarios, segmentation masks and keypoints are the target once HYDRA-UMC-TWIN's own physics/rendering engine exists (see the Key Features caveats and Honesty check below for what runs today: real 2D placeholder-shape rendering, not 3D).
 
 ### Key Features:
 * 🎲 **Procedural Scenarios (v0):** Real, seeded-deterministic randomization of 2D component placement, size, and color. *(implemented as real 2D placeholder shapes, not yet 3D poses/lighting/textures through HYDRA-UMC-TWIN's engine - see BUILD AND RUN below)*

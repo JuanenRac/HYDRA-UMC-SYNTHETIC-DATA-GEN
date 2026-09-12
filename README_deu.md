@@ -14,13 +14,15 @@
   <img src="https://img.shields.io/badge/Ziel-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
+**Ehrlichkeitscheck - was heute wirklich läuft:** die prozedurale 2D-Szenengenerierung mit seed-deterministischer Platzierung/Größe/Farbe (`scene.py`), die echte 24-Bit-BMP-Rasterisierung nur mit der Standardbibliothek - flach schattierte Rechtecke, kein fotorealistisches Rendering (`render.py`), der echte, pixelgenaue YOLO- und COCO-Annotationsexport - Bounding Boxes stammen direkt aus denselben Koordinaten, die die Szene platziert und der Renderer gezeichnet hat, es gibt also kein Erkennungsmodell im Ablauf, das ungenau sein könnte (`export.py`), die echte, zufällige rechteckige Fehlerüberlagerung und eine echte `manifest.json` plus echte Validierung nach der Generierung (Szenengrenzen, BMP-Integrität, Label-Verteilungs-Plausibilität) sind alle real und getestet (42 Tests, `pytest`). Was NICHT real ist: fotorealistisches 3D-Rendering, Segmentierungsmasken, Keypoints, Multi-Kamera-Ansichten und TFRecord-Export - all das braucht HYDRA-UMC-TWINs eigene echte Physik-/Rendering-Engine, die es noch nicht gibt (dieses Projekt selbst ist noch Scaffolding), oder (TFRecord) eine echte TensorFlow-Abhängigkeit, die diese v0 bewusst nicht eingeht. Siehe `CHANGELOG.md` für das, was bisher genau ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
+
 ---
 
 ## 1. 🛠️ TECHNISCHER ÜBERBLICK
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** ist die Datenfabrik für den Vision AI Node. Er nutzt die Physik- und Rendering-Engines des Digital Twin, um prozedural Tausende von beschrifteten Bildern für das Training neuronaler Netze zu generieren.
 
-Er löst das "Kaltstart"-Problem für neue industrielle Komponenten oder seltene Defekttypen, indem er fotorealistische 3D-Szenarien mit automatischer, pixelgenauer Annotation (Bounding Boxes, Segmentierungsmasken und Keypoints) erstellt.
+Er löst das "Kaltstart"-Problem für neue industrielle Komponenten oder seltene Defekttypen mit automatischer, pixelgenauer Bounding-Box-Annotation. Fotorealistische 3D-Szenarien, Segmentierungsmasken und Keypoints sind das Ziel, sobald HYDRA-UMC-TWINs eigene echte Physik-/Rendering-Engine existiert (siehe die Key-Features-Vorbehalte und den Ehrlichkeitscheck weiter unten für das, was heute wirklich läuft: echtes 2D-Platzhalterform-Rendering, kein 3D).
 
 ### Hauptmerkmale:
 * 🎲 **Prozedurale Szenarien (v0):** Echte, deterministische (seed-basierte) Randomisierung von Position, Größe und Farbe von 2D-Komponenten. *(implementiert als echte 2D-Platzhalterformen, noch keine 3D-Posen/Beleuchtung/Texturen über die Engine von HYDRA-UMC-TWIN - siehe BUILD UND RUN unten)*
