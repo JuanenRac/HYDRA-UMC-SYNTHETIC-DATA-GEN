@@ -18,6 +18,26 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.8] - A real Bresenham-line scratch, alongside the original rectangular defect overlay
+
+- **`scene.py`**: `generate_scratch()` draws a real scratch defect via
+  Bresenham's line algorithm between two randomized endpoints within a
+  defect's bounding box, with independently randomized per-point
+  half-width and opacity so it reads as an irregular surface scratch
+  rather than a uniform stroke. `generate_scene()` now picks between
+  this and the original solid rectangle 50/50 (same seeded `rng`, fully
+  deterministic). The bounding box `Component` already carried for
+  annotation purposes is unchanged either way - `export.py`'s YOLO/COCO
+  writers needed no changes.
+- **`render.py`**: a scratch-kind `Component` blends its line pixels
+  into whatever is already painted beneath them (the parent component's
+  own fill) instead of a flat rectangle overwrite.
+- 5 new tests: Bresenham correctness (8-connected path, real start/end
+  endpoints across several slopes/directions), scratch determinism,
+  scratch points staying within their own bounding box, and a real
+  pixel-level proof the render path actually blends scratch pixels
+  against the background. 47/47 passing (was 42).
+
 ## CI - real pytest suite now actually runs
 
 - **`.github/workflows/ci.yml`** - the real `tests/` pytest suite is now

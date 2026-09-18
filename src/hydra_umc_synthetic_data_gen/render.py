@@ -28,6 +28,23 @@ def render_bmp(scene: Scene, path: Path) -> None:
 
     pixels = [[scene.background_color for _ in range(width)] for _ in range(height)]
     for comp in scene.components:
+        if comp.scratch is not None:
+            # Blended into whatever's already painted beneath it (the
+            # parent component's own fill, since it was appended earlier
+            # in scene.components and painted first) rather than a flat
+            # overwrite - see ScratchPoint's own docstring for why.
+            for sp in comp.scratch:
+                for oy in range(-sp.half_width, sp.half_width + 1):
+                    for ox in range(-sp.half_width, sp.half_width + 1):
+                        px, py = sp.x + ox, sp.y + oy
+                        if 0 <= px < width and 0 <= py < height:
+                            base = pixels[py][px]
+                            pixels[py][px] = (
+                                int(base[0] * (1 - sp.opacity) + comp.color[0] * sp.opacity),
+                                int(base[1] * (1 - sp.opacity) + comp.color[1] * sp.opacity),
+                                int(base[2] * (1 - sp.opacity) + comp.color[2] * sp.opacity),
+                            )
+            continue
         y_start = max(0, comp.y)
         y_end = min(height, comp.y + comp.height)
         x_start = max(0, comp.x)
