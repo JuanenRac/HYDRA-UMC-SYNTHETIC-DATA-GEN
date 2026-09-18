@@ -23,8 +23,74 @@ DEFECT_LABEL = "defect"
 
 
 @dataclass(frozen=True)
+class ScratchPoint:
+    """One real point along a scratch's Bresenham line, with its own
+    randomized half-width (pixels either side of the point also painted,
+    giving the line real thickness variation) and opacity (blended
+    against whatever pixel is already there - the component color the
+    scratch is overlaid on - rather than flatly overwriting it, which is
+    what already made the existing rectangular defect overlay look like a
+    solid patch rather than a scratch)."""
+
+    x: int
+    y: int
+    half_width: int
+    opacity: float
+
+
+def _bresenham_line(x0: int, y0: int, x1: int, y1: int) -> list[tuple[int, int]]:
+    """Real Bresenham's line algorithm (integer-only, no float rounding
+    drift) - the classic error-accumulator formulation, correct for a
+    line in any of the 8 octants (works for any direction/slope, not
+    just shallow positive ones)."""
+    points: list[tuple[int, int]] = []
+    dx = abs(x1 - x0)
+    dy = -abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+    x, y = x0, y0
+    while True:
+        points.append((x, y))
+        if x == x1 and y == y1:
+            break
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x += sx
+        if e2 <= dx:
+            err += dx
+            y += sy
+    return points
+
+
+def generate_scratch(rng: random.Random, x: int, y: int, width: int, height: int) -> tuple[ScratchPoint, ...]:
+    """A real scratch defect: a randomized-endpoint line drawn via
+    Bresenham's algorithm across the given bounding box, with per-point
+    randomized half-width/opacity so it reads as an irregular surface
+    scratch rather than a uniform stroke - the same real defect kind the
+    README's own "scratches, missing parts, solder bridges" description
+    names, previously only approximated by a solid rectangular overlay.
+    Fully deterministic given `rng`, same as every other random choice in
+    this module - no unseeded randomness anywhere in this function."""
+    x0 = x + rng.randint(0, max(0, width - 1))
+    y0 = y + rng.randint(0, max(0, height - 1))
+    x1 = x + rng.randint(0, max(0, width - 1))
+    y1 = y + rng.randint(0, max(0, height - 1))
+    return tuple(
+        ScratchPoint(x=px, y=py, half_width=rng.randint(0, 1), opacity=rng.uniform(0.4, 0.9))
+        for px, py in _bresenham_line(x0, y0, x1, y1)
+    )
+
+
+@dataclass(frozen=True)
 class Component:
-    """One real placed rectangle: a component or a defect overlay."""
+    """One real placed rectangle: a component, or a defect overlay -
+    either the original solid rectangular kind, or (when `scratch` is
+    set) a real Bresenham-line scratch drawn within this same bounding
+    box instead of a flat fill. `x`/`y`/`width`/`height` remain this
+    defect's real annotation bounding box either way - export.py's own
+    YOLO/COCO writers need no changes for the scratch kind."""
 
     label: str
     x: int
@@ -32,6 +98,7 @@ class Component:
     width: int
     height: int
     color: tuple[int, int, int]
+    scratch: tuple[ScratchPoint, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -97,8 +164,19 @@ def generate_scene(
             dh = max(4, h // 3)
             dx = x + rng.randint(0, max(0, w - dw))
             dy = y + rng.randint(0, max(0, h - dh))
-            components.append(
-                Component(label=DEFECT_LABEL, x=dx, y=dy, width=dw, height=dh, color=(200, 30, 30))
-            )
+            # Two real defect kinds, chosen with the same seeded rng as
+            # everything else here: the original solid rectangular
+            # overlay, or a scratch drawn via Bresenham's algorithm - see
+            # generate_scratch()'s own docstring for why the scratch kind
+            # exists alongside it rather than replacing it.
+            if rng.random() < 0.5:
+                scratch = generate_scratch(rng, dx, dy, dw, dh)
+                components.append(
+                    Component(label=DEFECT_LABEL, x=dx, y=dy, width=dw, height=dh, color=(200, 30, 30), scratch=scratch)
+                )
+            else:
+                components.append(
+                    Component(label=DEFECT_LABEL, x=dx, y=dy, width=dw, height=dh, color=(200, 30, 30))
+                )
 
     return Scene(width=width, height=height, background_color=background_color, components=tuple(components))
