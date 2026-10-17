@@ -111,3 +111,25 @@ def test_generate_rejects_invalid_resource_or_probability_settings(
     captured = capsys.readouterr()
     assert exit_code == 2
     assert message in captured.err
+
+
+def test_a_dataset_that_would_fill_the_disk_is_refused_before_anything_is_written(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    out_dir = tmp_path / "dataset"
+
+    exit_code = main(["generate", "--out", str(out_dir), "--count", "10000", "--width", "4096", "--height", "4096"])
+
+    assert exit_code == 2
+    assert "GiB" in capsys.readouterr().err
+    assert not out_dir.exists()
+
+
+def test_a_large_but_reasonable_dataset_is_not_refused(tmp_path: Path) -> None:
+    # two 1024x1024 scenes are about 6 MiB of images: far under the limit
+    out_dir = tmp_path / "dataset"
+
+    exit_code = main(["generate", "--out", str(out_dir), "--count", "2", "--width", "1024", "--height", "1024", "--components", "3", "--seed", "1"])
+
+    assert exit_code == 0
+    assert (out_dir / "manifest.json").is_file()

@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center">🇺🇸 <b>English</b> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center">🇺🇸 <b>English</b> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Procedural Dataset Generator for Vision AI Node Training
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), a real randomized defect overlay - either the original solid rectangle, or (50% of the time) a real scratch drawn via Bresenham's line algorithm with randomized per-point width/opacity - and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (47 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
+**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), a real randomized defect overlay - either the original solid rectangle, or (50% of the time) a real scratch drawn via Bresenham's line algorithm with randomized per-point width/opacity - and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (49 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
 
 ---
 
@@ -119,6 +119,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Writes real BMP images to `dataset/images/`, real YOLO labels to `dataset/labels/` + `dataset/classes.txt`, and/or a real `dataset/annotations.json` in COCO format, depending on `--format`. A given `--seed` makes the dataset byte-for-byte reproducible.
+
+The arguments are range-checked (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1), and the images of the whole dataset are capped at 4 GiB: a command whose estimated size is over that is refused with exit code 2 before anything is written, so a typo cannot fill the disk of the machine it runs on.
 
 Every run also writes a real `dataset/manifest.json` and validates its own output:
 

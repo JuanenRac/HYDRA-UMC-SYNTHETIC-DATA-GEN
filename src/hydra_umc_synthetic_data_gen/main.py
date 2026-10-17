@@ -41,6 +41,11 @@ MIN_DIMENSION = 16
 MAX_DIMENSION = 4096
 MAX_SCENES = 10_000
 MAX_COMPONENTS = 1_000
+# Each scene is an uncompressed 24-bit BMP, so the individual limits above still allow
+# 10,000 scenes of 4096x4096 (about 500 GB) from one command, which would silently fill
+# the disk of the machine it runs on (a CM5 has a few tens of GB). The size of the whole
+# dataset is bounded as well.
+MAX_DATASET_BYTES = 4 * 1024**3
 
 
 def get_version() -> str:
@@ -68,6 +73,14 @@ def _run_generate(args: argparse.Namespace) -> int:
         errors.append(f"--components must be in 1..{MAX_COMPONENTS}")
     if not math.isfinite(args.defect_rate) or not 0.0 <= args.defect_rate <= 1.0:
         errors.append("--defect-rate must be a finite value in 0.0..1.0")
+    if not errors:
+        bytes_per_image = 54 + ((3 * args.width + 3) & ~3) * args.height  # BMP header + 4-byte-aligned rows
+        total_bytes = bytes_per_image * args.count
+        if total_bytes > MAX_DATASET_BYTES:
+            errors.append(
+                f"{args.count} scene(s) of {args.width}x{args.height} would take about {total_bytes / 1024**3:.1f} GiB "
+                f"of images, over the {MAX_DATASET_BYTES // 1024**3} GiB limit - lower --count, --width or --height"
+            )
     if errors:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)

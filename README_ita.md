@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | 🇮🇹 <b>Italiano</b> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | 🇮🇹 <b>Italiano</b> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Generatore di dataset procedurali per l'addestramento dei Vision AI Node
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**Controllo di onestà - cosa funziona davvero oggi:** la generazione procedurale di scene 2D con posizionamento/dimensione/colore deterministico tramite seed (`scene.py`), la rasterizzazione BMP reale a 24 bit con la sola libreria standard - rettangoli piatti, non rendering fotorealistico (`render.py`), l'esportazione reale di annotazioni YOLO e COCO perfetta al pixel - i bounding box provengono direttamente dalle stesse coordinate che la scena ha posizionato e il renderer ha disegnato, quindi non c'è alcun modello di rilevamento nel ciclo che possa essere impreciso (`export.py`), la sovrapposizione reale di difetti rettangolari casuali, e un vero `manifest.json` più una validazione reale post-generazione (limiti di scena, integrità BMP, sanità della distribuzione delle etichette) sono tutti reali e testati (47 test, `pytest`). Ciò che NON è reale: il rendering 3D fotorealistico, le maschere di segmentazione, i keypoint, le viste multi-camera e l'esportazione TFRecord - tutto ciò richiede il vero motore fisico/di rendering di HYDRA-UMC-TWIN, che non esiste ancora (quel progetto è a sua volta ancora scaffolding), oppure (TFRecord) una vera dipendenza TensorFlow che questa v0 deliberatamente non assume. Vedi `CHANGELOG.md` per ciò che è stato consegnato esattamente finora, e la ROADMAP più sotto per ciò che resta aperto.
+**Controllo di onestà - cosa funziona davvero oggi:** la generazione procedurale di scene 2D con posizionamento/dimensione/colore deterministico tramite seed (`scene.py`), la rasterizzazione BMP reale a 24 bit con la sola libreria standard - rettangoli piatti, non rendering fotorealistico (`render.py`), l'esportazione reale di annotazioni YOLO e COCO perfetta al pixel - i bounding box provengono direttamente dalle stesse coordinate che la scena ha posizionato e il renderer ha disegnato, quindi non c'è alcun modello di rilevamento nel ciclo che possa essere impreciso (`export.py`), la sovrapposizione reale di difetti rettangolari casuali, e un vero `manifest.json` più una validazione reale post-generazione (limiti di scena, integrità BMP, sanità della distribuzione delle etichette) sono tutti reali e testati (49 test, `pytest`). Ciò che NON è reale: il rendering 3D fotorealistico, le maschere di segmentazione, i keypoint, le viste multi-camera e l'esportazione TFRecord - tutto ciò richiede il vero motore fisico/di rendering di HYDRA-UMC-TWIN, che non esiste ancora (quel progetto è a sua volta ancora scaffolding), oppure (TFRecord) una vera dipendenza TensorFlow che questa v0 deliberatamente non assume. Vedi `CHANGELOG.md` per ciò che è stato consegnato esattamente finora, e la ROADMAP più sotto per ciò che resta aperto.
 
 ---
 
@@ -119,6 +119,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Scrive vere immagini BMP in `dataset/images/`, vere etichette YOLO in `dataset/labels/` + `dataset/classes.txt`, e/o un vero `dataset/annotations.json` in formato COCO, a seconda di `--format`. Un `--seed` dato rende il dataset riproducibile byte per byte.
+
+Gli argomenti sono controllati per intervallo (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1) e le immagini dell'intero dataset sono limitate a 4 GiB: un comando la cui dimensione stimata supera quel limite viene rifiutato con codice di uscita 2 prima di scrivere qualsiasi cosa, così un errore di battitura non può riempire il disco della macchina su cui gira.
 
 Ogni esecuzione scrive anche un vero `dataset/manifest.json` e valida il proprio output:
 

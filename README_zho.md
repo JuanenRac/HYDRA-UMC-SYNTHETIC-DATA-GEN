@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 面向视觉 AI 节点训练的程序化数据集生成器
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**诚实核查 - 今天真正能运行的部分：** 带有种子确定性放置/尺寸/颜色的程序化 2D 场景生成(`scene.py`)、仅用标准库实现的真实 24 位 BMP 光栅化——平面着色矩形，而非照片级真实渲染(`render.py`)、真实的像素级精确 YOLO 和 COCO 标注导出——边界框直接来自场景放置和渲染器绘制时使用的同一坐标，因此流程中没有任何检测模型可能带来误差(`export.py`)、真实的随机矩形缺陷叠加，以及真实的 `manifest.json` 加上真实的生成后校验(场景边界、BMP 完整性、标签分布合理性检查)，这些都是真实的并经过测试(42 个测试，`pytest`)。尚不真实的部分：照片级真实的 3D 渲染、分割掩码、关键点、多摄像头视图以及 TFRecord 导出——这一切都需要 HYDRA-UMC-TWIN 自身真正的物理/渲染引擎，而它尚不存在(该项目本身仍处于脚手架阶段)，或者(TFRecord)需要一个真实的 TensorFlow 依赖，而这个 v0 版本刻意没有引入。具体已交付的内容请见 `CHANGELOG.md`，尚待完成的部分请见下方 ROADMAP。
+**诚实核查 - 今天真正能运行的部分：** 带有种子确定性放置/尺寸/颜色的程序化 2D 场景生成(`scene.py`)、仅用标准库实现的真实 24 位 BMP 光栅化——平面着色矩形，而非照片级真实渲染(`render.py`)、真实的像素级精确 YOLO 和 COCO 标注导出——边界框直接来自场景放置和渲染器绘制时使用的同一坐标，因此流程中没有任何检测模型可能带来误差(`export.py`)、真实的随机矩形缺陷叠加，以及真实的 `manifest.json` 加上真实的生成后校验(场景边界、BMP 完整性、标签分布合理性检查)，这些都是真实的并经过测试(49 个测试，`pytest`)。尚不真实的部分：照片级真实的 3D 渲染、分割掩码、关键点、多摄像头视图以及 TFRecord 导出——这一切都需要 HYDRA-UMC-TWIN 自身真正的物理/渲染引擎，而它尚不存在(该项目本身仍处于脚手架阶段)，或者(TFRecord)需要一个真实的 TensorFlow 依赖，而这个 v0 版本刻意没有引入。具体已交付的内容请见 `CHANGELOG.md`，尚待完成的部分请见下方 ROADMAP。
 
 ---
 
@@ -129,6 +129,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 标注写入 `dataset/labels/` + `dataset/classes.txt`，和/或将真实的
 `dataset/annotations.json`（COCO 格式）写入磁盘。给定 `--seed` 可使数据
 集实现逐字节可复现。
+
+参数会做范围检查（`--count` 1..10000、`--width`/`--height` 16..4096、`--components` 1..1000、`--defect-rate` 0..1），整个数据集的图像上限为 4 GiB：预计大小超过该上限的命令会在写入任何内容之前以退出码 2 被拒绝，因此一个笔误不会把运行它的机器的磁盘写满。
 
 每次运行还会写入一个真实的 `dataset/manifest.json`，并验证自身的输出：
 

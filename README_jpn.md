@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | 🇯🇵 <b>日本語</b></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | 🇯🇵 <b>日本語</b> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 ビジョン AI ノードの学習向けプロシージャルデータセットジェネレーター
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**正直な現状確認 - 今日実際に動くもの:** シード決定的な配置/サイズ/色によるプロシージャルな2Dシーン生成(`scene.py`)、標準ライブラリのみによる本物の24ビットBMPラスタライズ - フォトリアリスティックなレンダリングではなく、フラットシェーディングの矩形(`render.py`)、本物のピクセル単位で正確なYOLOおよびCOCOアノテーションのエクスポート - バウンディングボックスはシーンが配置しレンダラーが描画したのと同じ座標から直接得られるため、精度が問題になりうる検出モデルはループ内に存在しない(`export.py`)、本物のランダムな矩形欠陥オーバーレイ、そして本物の`manifest.json`と本物の生成後検証(シーン境界、BMP整合性、ラベル分布の健全性)は、すべて本物でテスト済みである(42件のテスト、`pytest`)。本物でないもの: フォトリアリスティックな3Dレンダリング、セグメンテーションマスク、キーポイント、マルチカメラビュー、TFRecordエクスポート - これらはすべてHYDRA-UMC-TWIN自身の本物の物理/レンダリングエンジンを必要とするが、それはまだ存在しない(そのプロジェクト自体がまだスキャフォールディングである)、または(TFRecordの場合)このv0が意図的に採用していない本物のTensorFlow依存関係を必要とする。これまでに何が実際に出荷されたかは`CHANGELOG.md`を、残っている作業は下記のROADMAPを参照してください。
+**正直な現状確認 - 今日実際に動くもの:** シード決定的な配置/サイズ/色によるプロシージャルな2Dシーン生成(`scene.py`)、標準ライブラリのみによる本物の24ビットBMPラスタライズ - フォトリアリスティックなレンダリングではなく、フラットシェーディングの矩形(`render.py`)、本物のピクセル単位で正確なYOLOおよびCOCOアノテーションのエクスポート - バウンディングボックスはシーンが配置しレンダラーが描画したのと同じ座標から直接得られるため、精度が問題になりうる検出モデルはループ内に存在しない(`export.py`)、本物のランダムな矩形欠陥オーバーレイ、そして本物の`manifest.json`と本物の生成後検証(シーン境界、BMP整合性、ラベル分布の健全性)は、すべて本物でテスト済みである(49件のテスト、`pytest`)。本物でないもの: フォトリアリスティックな3Dレンダリング、セグメンテーションマスク、キーポイント、マルチカメラビュー、TFRecordエクスポート - これらはすべてHYDRA-UMC-TWIN自身の本物の物理/レンダリングエンジンを必要とするが、それはまだ存在しない(そのプロジェクト自体がまだスキャフォールディングである)、または(TFRecordの場合)このv0が意図的に採用していない本物のTensorFlow依存関係を必要とする。これまでに何が実際に出荷されたかは`CHANGELOG.md`を、残っている作業は下記のROADMAPを参照してください。
 
 ---
 
@@ -137,6 +137,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 YOLO ラベルを `dataset/labels/` + `dataset/classes.txt` に、および/または
 実際の `dataset/annotations.json`（COCO 形式）を書き込みます。特定の
 `--seed` を指定すると、データセットはバイト単位で再現可能になります。
+
+引数は範囲チェックされ（`--count` 1..10000、`--width`/`--height` 16..4096、`--components` 1..1000、`--defect-rate` 0..1）、データセット全体の画像は 4 GiB に制限されます。推定サイズがこれを超えるコマンドは、何かを書き込む前に終了コード 2 で拒否されるため、入力ミスで実行マシンのディスクがいっぱいになることはありません。
 
 各実行は実際の `dataset/manifest.json` も書き込み、自身の出力を検証します：
 

@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Prozeduraler Datensatz-Generator für das Vision AI Node Training
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Ziel-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** die prozedurale 2D-Szenengenerierung mit seed-deterministischer Platzierung/Größe/Farbe (`scene.py`), die echte 24-Bit-BMP-Rasterisierung nur mit der Standardbibliothek - flach schattierte Rechtecke, kein fotorealistisches Rendering (`render.py`), der echte, pixelgenaue YOLO- und COCO-Annotationsexport - Bounding Boxes stammen direkt aus denselben Koordinaten, die die Szene platziert und der Renderer gezeichnet hat, es gibt also kein Erkennungsmodell im Ablauf, das ungenau sein könnte (`export.py`), die echte, zufällige rechteckige Fehlerüberlagerung und eine echte `manifest.json` plus echte Validierung nach der Generierung (Szenengrenzen, BMP-Integrität, Label-Verteilungs-Plausibilität) sind alle real und getestet (42 Tests, `pytest`). Was NICHT real ist: fotorealistisches 3D-Rendering, Segmentierungsmasken, Keypoints, Multi-Kamera-Ansichten und TFRecord-Export - all das braucht HYDRA-UMC-TWINs eigene echte Physik-/Rendering-Engine, die es noch nicht gibt (dieses Projekt selbst ist noch Scaffolding), oder (TFRecord) eine echte TensorFlow-Abhängigkeit, die diese v0 bewusst nicht eingeht. Siehe `CHANGELOG.md` für das, was bisher genau ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
+**Ehrlichkeitscheck - was heute wirklich läuft:** die prozedurale 2D-Szenengenerierung mit seed-deterministischer Platzierung/Größe/Farbe (`scene.py`), die echte 24-Bit-BMP-Rasterisierung nur mit der Standardbibliothek - flach schattierte Rechtecke, kein fotorealistisches Rendering (`render.py`), der echte, pixelgenaue YOLO- und COCO-Annotationsexport - Bounding Boxes stammen direkt aus denselben Koordinaten, die die Szene platziert und der Renderer gezeichnet hat, es gibt also kein Erkennungsmodell im Ablauf, das ungenau sein könnte (`export.py`), die echte, zufällige rechteckige Fehlerüberlagerung und eine echte `manifest.json` plus echte Validierung nach der Generierung (Szenengrenzen, BMP-Integrität, Label-Verteilungs-Plausibilität) sind alle real und getestet (49 Tests, `pytest`). Was NICHT real ist: fotorealistisches 3D-Rendering, Segmentierungsmasken, Keypoints, Multi-Kamera-Ansichten und TFRecord-Export - all das braucht HYDRA-UMC-TWINs eigene echte Physik-/Rendering-Engine, die es noch nicht gibt (dieses Projekt selbst ist noch Scaffolding), oder (TFRecord) eine echte TensorFlow-Abhängigkeit, die diese v0 bewusst nicht eingeht. Siehe `CHANGELOG.md` für das, was bisher genau ausgeliefert wurde, und die ROADMAP weiter unten für das, was noch offen ist.
 
 ---
 
@@ -119,6 +119,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Schreibt echte BMP-Bilder nach `dataset/images/`, echte YOLO-Labels nach `dataset/labels/` + `dataset/classes.txt`, und/oder eine echte `dataset/annotations.json` im COCO-Format, je nach `--format`. Ein gegebener `--seed` macht den Datensatz byte-genau reproduzierbar.
+
+Die Argumente werden auf ihren Bereich geprüft (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1), und die Bilder des gesamten Datensatzes sind auf 4 GiB begrenzt: Ein Befehl, dessen geschätzte Größe darüber liegt, wird mit Exit-Code 2 abgelehnt, bevor etwas geschrieben wird, sodass ein Tippfehler nicht den Datenträger des ausführenden Rechners füllen kann.
 
 Jeder Lauf schreibt außerdem eine echte `dataset/manifest.json` und validiert seine eigene Ausgabe:
 

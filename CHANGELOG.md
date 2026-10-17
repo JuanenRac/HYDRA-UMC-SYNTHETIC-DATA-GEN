@@ -18,6 +18,12 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.0.9] - Dataset size limit, Portuguese README
+
+- **A single command could fill the disk:** `generate` range-checked each argument (`--count` up to 10,000, `--width`/`--height` up to 4096) but not their product, and every scene is an uncompressed 24-bit BMP, so `--count 10000 --width 4096 --height 4096` would have written about 500 GB of images before anything complained - enough to fill the SD card of a CM5 from a typo. The estimated size of the images of the whole dataset is now checked before anything is written and a command over 4 GiB is refused with exit code 2 and a message naming the size and the three arguments to lower.
+- **Tests:** a new test checks that the oversized command is refused with nothing created and another that a reasonable large dataset (two 1024x1024 scenes) is still generated (49 tests). The reproducibility of a seeded run and the rejection of out-of-range values were also confirmed against the real command.
+- **Docs:** the README documents the argument ranges and the size limit and the test count is corrected (it said 47 in some languages and 42 in others), and a README in Portuguese (`README_por.md`) joins the other translations.
+
 ## [0.0.8] - A real Bresenham-line scratch, alongside the original rectangular defect overlay
 
 - **`scene.py`**: `generate_scratch()` draws a real scratch defect via

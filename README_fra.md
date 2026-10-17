@@ -4,7 +4,7 @@
 
 # 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | 🇫🇷 <b>Français</b> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | 🇫🇷 <b>Français</b> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Générateur de jeux di données procéduraux pour l'entraînement des nœuds Vision AI
 
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Cible-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la génération procédurale de scènes 2D avec placement/taille/couleur déterministe par graine (`scene.py`), la rastérisation BMP 24 bits réelle avec la seule bibliothèque standard - des rectangles à plat, pas un rendu photoréaliste (`render.py`), l'export réel d'annotations YOLO et COCO parfait au pixel près - les boîtes de délimitation proviennent directement des mêmes coordonnées que la scène a placées et que le rendu a peintes, il n'y a donc aucun modèle de détection dans la boucle qui pourrait être imprécis (`export.py`), la superposition réelle de défauts rectangulaires aléatoires, et un vrai `manifest.json` plus une validation réelle post-génération (limites de scène, intégrité BMP, cohérence de distribution des étiquettes) sont tous réels et testés (47 tests, `pytest`). Ce qui n'est PAS réel : le rendu 3D photoréaliste, les masques de segmentation, les points clés, les vues multi-caméras et l'export TFRecord - tout cela nécessite le véritable moteur physique/de rendu de HYDRA-UMC-TWIN, qui n'existe pas encore (ce projet est lui-même toujours au stade d'ébauche), ou (TFRecord) une véritable dépendance TensorFlow que cette v0 n'assume délibérément pas. Voir `CHANGELOG.md` pour ce qui a été livré exactement jusqu'à présent, et la FEUILLE DE ROUTE ci-dessous pour ce qui reste ouvert.
+**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la génération procédurale de scènes 2D avec placement/taille/couleur déterministe par graine (`scene.py`), la rastérisation BMP 24 bits réelle avec la seule bibliothèque standard - des rectangles à plat, pas un rendu photoréaliste (`render.py`), l'export réel d'annotations YOLO et COCO parfait au pixel près - les boîtes de délimitation proviennent directement des mêmes coordonnées que la scène a placées et que le rendu a peintes, il n'y a donc aucun modèle de détection dans la boucle qui pourrait être imprécis (`export.py`), la superposition réelle de défauts rectangulaires aléatoires, et un vrai `manifest.json` plus une validation réelle post-génération (limites de scène, intégrité BMP, cohérence de distribution des étiquettes) sont tous réels et testés (49 tests, `pytest`). Ce qui n'est PAS réel : le rendu 3D photoréaliste, les masques de segmentation, les points clés, les vues multi-caméras et l'export TFRecord - tout cela nécessite le véritable moteur physique/de rendu de HYDRA-UMC-TWIN, qui n'existe pas encore (ce projet est lui-même toujours au stade d'ébauche), ou (TFRecord) une véritable dépendance TensorFlow que cette v0 n'assume délibérément pas. Voir `CHANGELOG.md` pour ce qui a été livré exactement jusqu'à présent, et la FEUILLE DE ROUTE ci-dessous pour ce qui reste ouvert.
 
 ---
 
@@ -119,6 +119,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 ```
 
 Écrit de vraies images BMP dans `dataset/images/`, de vraies étiquettes YOLO dans `dataset/labels/` + `dataset/classes.txt`, et/ou un vrai `dataset/annotations.json` au format COCO, selon `--format`. Une `--seed` donnée rend le jeu de données reproductible octet pour octet.
+
+Les arguments sont vérifiés par plage (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1) et les images de tout le jeu de données sont plafonnées à 4 Gio : une commande dont la taille estimée dépasse cette limite est refusée avec le code de sortie 2 avant que quoi que ce soit ne soit écrit, si bien qu'une faute de frappe ne peut pas remplir le disque de la machine où elle s'exécute.
 
 Chaque exécution écrit aussi un vrai `dataset/manifest.json` et valide sa propre sortie :
 
