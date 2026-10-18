@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 In breve
+
+| | |
+|---|---|
+| Versione | `0.1.0` |
+| Maturità | Consolidato |
+| Test | 58 (`pytest`) |
+| Tecnologia | Python / procedural scene generation / YOLO/COCO annotation export |
+| Destinazione | Il PC di chi lo usa |
+| Su hardware reale | Non applicabile: nulla qui gira su hardware |
+
 ## 1. 🛠️ PANORAMICA TECNICA
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** è la fabbrica di dati per i Vision AI Node. Sfrutta i motori di fisica e rendering del Digital Twin per generare proceduralmente migliaia di immagini etichettate per l'addestramento delle reti neurali.

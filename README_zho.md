@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 速览
+
+| | |
+|---|---|
+| 版本 | `0.1.0` |
+| 成熟度 | 成熟 |
+| 测试 | 58 (`pytest`) |
+| 技术栈 | Python / procedural scene generation / YOLO/COCO annotation export |
+| 目标 | 使用者的电脑 |
+| 真实硬件 | 不适用：这里的内容不在硬件上运行 |
+
 ## 1. 🛠️ 技术概述
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** 是视觉 AI 节点的数据工厂。它利用数字

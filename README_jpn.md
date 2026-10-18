@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 ひと目で
+
+| | |
+|---|---|
+| バージョン | `0.1.0` |
+| 成熟度 | 確立 |
+| テスト | 58 (`pytest`) |
+| 技術 | Python / procedural scene generation / YOLO/COCO annotation export |
+| 対象 | 利用者の PC |
+| 実機での確認 | 対象外：ここにあるものはハードウェア上では動きません |
+
 ## 1. 🛠️ 技術概要
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** は、ビジョン AI ノードのためのデータ

@@ -20,6 +20,17 @@
 
 ---
 
+## 📋 Num relance
+
+| | |
+|---|---|
+| Versão | `0.1.0` |
+| Maturidade | Estabelecido |
+| Testes | 58 (`pytest`) |
+| Tecnologia | Python / procedural scene generation / YOLO/COCO annotation export |
+| Destino | O PC de quem o usa |
+| Em hardware real | Não aplicável: nada aqui corre em hardware |
+
 ## 1. 🛠️ VISÃO TÉCNICA GERAL
 
 O **HYDRA-UMC-SYNTHETIC-DATA-GEN** é a fábrica de dados do Nó de IA de Visão. Tira partido dos motores de física e renderização do Gémeo Digital para gerar proceduralmente milhares de imagens etiquetadas para treinar redes neuronais.
