@@ -16,6 +16,7 @@ expected size and the actual bytes on disk.
 """
 from __future__ import annotations
 
+import math
 import struct
 from dataclasses import dataclass
 from pathlib import Path

@@ -18,6 +18,16 @@ semantic-versioning judgment calls:
 
 ---
 
+## [0.1.0] - Stable class ids, labels that follow what is visible, no leakage between seeds
+
+- **Class ids are stable:** the YOLO class index and the COCO category id came from the labels present in that particular dataset, sorted alphabetically, so a run without a "defect" (or with a missing class) shifted every id. They now follow a fixed order (`bolt`, `bracket`, `gear`, `connector`, `defect`), written to `classes.txt` and to the manifest, whatever the run contains.
+- **Labels follow what is visible:** a component that later components cover (almost) completely is no longer labelled, and a scratch is boxed by the pixels it really paints (thickness included) instead of the whole area it was drawn in; a scratch shorter than four points becomes a rectangular defect.
+- **No data leaking between splits:** the seed of each scene was `seed + index`, so `--seed 0` and `--seed 50` shared fifty scenes. It is now a hash of the seed and the index.
+- **Old files never mix with new ones:** `generate` refuses an `--out` folder that already holds a dataset.
+- **Always reproducible:** without `--seed` one is drawn and written to the manifest.
+- **A useful distribution check:** the defect-rate tolerance is three binomial standard deviations (plus a little slack) instead of a flat 0.25, which let "never any defect" pass.
+- **Docs and metadata:** the package description and the identity message no longer say the Digital Twin renders the images, the deployment target is a PC, `build/` and `dist/` are ignored, and the README (all languages) documents classes, labels, seeds and splits (58 tests).
+
 ## [0.0.9] - Dataset size limit, Portuguese README
 
 - **A single command could fill the disk:** `generate` range-checked each argument (`--count` up to 10,000, `--width`/`--height` up to 4096) but not their product, and every scene is an uncompressed 24-bit BMP, so `--count 10000 --width 4096 --height 4096` would have written about 500 GB of images before anything complained - enough to fill the SD card of a CM5 from a typo. The estimated size of the images of the whole dataset is now checked before anything is written and a command over 4 GiB is refused with exit code 2 and a message naming the size and the three arguments to lower.

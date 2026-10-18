@@ -19,8 +19,10 @@ doesn't exist yet).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
 import random
+import secrets
 import sys
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -28,14 +30,14 @@ from pathlib import Path
 from .export import Dataset, export_coco, export_yolo
 from .manifest import build_manifest, write_manifest
 from .render import render_bmp
-from .scene import DEFAULT_LABELS, generate_scene
+from .scene import FIXED_CLASSES, generate_scene
 from .validate import validate_dataset
 
 PROJECT_NAME = "HYDRA-UMC-SYNTHETIC-DATA-GEN"
 DIST_NAME = "hydra-umc-synthetic-data-gen"
 ROLE = (
-    "Procedural generator of training datasets for Vision nodes, rendered "
-    "through the Digital Twin's physics/rendering engine."
+    "Procedural generator of training datasets for Vision nodes "
+    "(rendering through the Digital Twin's physics engine is planned)."
 )
 MIN_DIMENSION = 16
 MAX_DIMENSION = 4096
@@ -88,11 +90,25 @@ def _run_generate(args: argparse.Namespace) -> int:
 
     out_dir = args.out
     images_dir = out_dir / "images"
+    leftovers = [name for name in ("images", "labels", "annotations.json", "classes.txt", "manifest.json") if (out_dir / name).exists()]
+    if leftovers:
+        # Generating over an old dataset would leave its files next to the new
+        # ones, and a trainer that lists the folder would pick up both.
+        print(
+            f"error: {out_dir} already holds a dataset ({', '.join(leftovers)}) - choose an empty --out directory",
+            file=sys.stderr,
+        )
+        return 2
     scenes: list[tuple[str, object]] = []
 
+    # Without --seed one is drawn and recorded, so the dataset can always be reproduced.
+    base_seed = args.seed if args.seed is not None else secrets.randbits(31)
+
     for index in range(args.count):
-        seed = args.seed + index if args.seed is not None else None
-        rng = random.Random(seed)
+        # Each scene's seed is a hash of the base seed and its index, so two
+        # runs with nearby seeds (train 0, val 50) do not share scenes.
+        digest = hashlib.sha256(f"{base_seed}:{index}".encode("ascii")).digest()
+        rng = random.Random(int.from_bytes(digest[:8], "big"))
         scene = generate_scene(
             rng,
             width=args.width,
@@ -112,17 +128,17 @@ def _run_generate(args: argparse.Namespace) -> int:
         export_coco(dataset, out_dir / "annotations.json")
 
     issues = validate_dataset(
-        dataset, images_dir, expected_labels=DEFAULT_LABELS, defect_rate=args.defect_rate
+        dataset, images_dir, expected_labels=FIXED_CLASSES, defect_rate=args.defect_rate
     )
     manifest = build_manifest(
         dataset,
         images_dir,
-        seed=args.seed,
+        seed=base_seed,
         width=args.width,
         height=args.height,
         requested_components=args.components,
         defect_rate=args.defect_rate,
-        labels=DEFAULT_LABELS,
+        labels=FIXED_CLASSES,
         fmt=args.format,
         issues=issues,
     )
@@ -132,7 +148,7 @@ def _run_generate(args: argparse.Namespace) -> int:
     print(f"Generated {args.count} scene(s) -> {images_dir}")
     print(f"Total labeled components (incl. defects): {total_components}")
     print(f"Annotations exported as: {args.format}")
-    print(f"Reproducible seed: {'yes (seed=' + str(args.seed) + ')' if manifest.reproducible else 'no (random)'}")
+    print(f"Seed: {base_seed} ({'given' if args.seed is not None else 'drawn at random and recorded in the manifest'})")
     print(f"Manifest written -> {out_dir / 'manifest.json'}")
 
     if issues:

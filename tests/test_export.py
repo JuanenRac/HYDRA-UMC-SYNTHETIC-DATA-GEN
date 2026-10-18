@@ -31,13 +31,15 @@ def test_export_yolo_writes_normalized_boxes(tmp_path: Path) -> None:
     export_yolo(dataset, tmp_path)
 
     classes = (tmp_path / "classes.txt").read_text(encoding="utf-8").splitlines()
-    assert classes == ["bolt", "gear"]
+    # the fixed class order, not the labels this particular dataset contains
+    assert classes == ["bolt", "bracket", "gear", "connector", "defect"]
 
     label_lines = (tmp_path / "labels" / "scene_0000.txt").read_text(encoding="utf-8").splitlines()
     assert len(label_lines) == 2
 
     bolt_class, cx, cy, w, h = label_lines[0].split()
     assert bolt_class == "0"
+    assert label_lines[1].split()[0] == "2"  # gear
     assert abs(float(cx) - 0.20) < 1e-6
     assert abs(float(cy) - 0.25) < 1e-6
     assert abs(float(w) - 0.20) < 1e-6
@@ -56,7 +58,7 @@ def test_export_coco_writes_valid_json(tmp_path: Path) -> None:
     assert len(payload["annotations"]) == 2
     assert payload["annotations"][0]["bbox"] == [10, 20, 20, 10]
     assert payload["annotations"][0]["area"] == 200
-    assert {c["name"] for c in payload["categories"]} == {"bolt", "gear"}
+    assert [c["name"] for c in payload["categories"]] == ["bolt", "bracket", "gear", "connector", "defect"]
 
 
 def test_export_yolo_on_scene_with_no_components_writes_empty_label_file(tmp_path: Path) -> None:

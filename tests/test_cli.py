@@ -74,14 +74,18 @@ def test_generate_is_reproducible_with_a_seed(tmp_path: Path) -> None:
     assert manifest_a["scenes"][0]["sha256"] == manifest_b["scenes"][0]["sha256"]
 
 
-def test_generate_without_a_seed_is_marked_not_reproducible(tmp_path: Path) -> None:
+def test_generate_without_a_seed_draws_one_and_records_it(tmp_path: Path) -> None:
     out_dir = tmp_path / "dataset"
 
     main(["generate", "--out", str(out_dir), "--count", "1"])
 
     manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["seed"] is None
-    assert manifest["reproducible"] is False
+    assert isinstance(manifest["seed"], int)
+    assert manifest["reproducible"] is True
+    # the recorded seed regenerates the same dataset
+    again = tmp_path / "again"
+    main(["generate", "--out", str(again), "--count", "1", "--seed", str(manifest["seed"])])
+    assert (again / "images" / "scene_0000.bmp").read_bytes() == (out_dir / "images" / "scene_0000.bmp").read_bytes()
 
 
 def test_generate_yolo_only_skips_coco(tmp_path: Path) -> None:
@@ -133,3 +137,32 @@ def test_a_large_but_reasonable_dataset_is_not_refused(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert (out_dir / "manifest.json").is_file()
+
+
+def test_generate_refuses_a_directory_that_already_holds_a_dataset(tmp_path: Path, capsys) -> None:
+    out_dir = tmp_path / "dataset"
+    assert main(["generate", "--out", str(out_dir), "--count", "3", "--seed", "1"]) == 0
+    before = sorted(p.name for p in (out_dir / "images").iterdir())
+    assert main(["generate", "--out", str(out_dir), "--count", "1", "--seed", "2"]) == 2
+    assert "already holds a dataset" in capsys.readouterr().err
+    assert sorted(p.name for p in (out_dir / "images").iterdir()) == before
+
+
+def test_nearby_seeds_do_not_share_scenes(tmp_path: Path) -> None:
+    train, val = tmp_path / "train", tmp_path / "val"
+    main(["generate", "--out", str(train), "--count", "20", "--seed", "0"])
+    main(["generate", "--out", str(val), "--count", "20", "--seed", "10"])
+    train_images = {p.read_bytes() for p in (train / "images").iterdir()}
+    val_images = {p.read_bytes() for p in (val / "images").iterdir()}
+    assert not train_images & val_images
+
+
+def test_class_ids_are_the_same_whatever_the_run_contains(tmp_path: Path) -> None:
+    few, many = tmp_path / "few", tmp_path / "many"
+    main(["generate", "--out", str(few), "--count", "1", "--components", "1", "--defect-rate", "0", "--seed", "3"])
+    main(["generate", "--out", str(many), "--count", "30", "--seed", "3"])
+    expected = ["bolt", "bracket", "gear", "connector", "defect"]
+    assert (few / "classes.txt").read_text(encoding="utf-8").split() == expected
+    assert (many / "classes.txt").read_text(encoding="utf-8").split() == expected
+    manifest = json.loads((many / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["labels"] == expected

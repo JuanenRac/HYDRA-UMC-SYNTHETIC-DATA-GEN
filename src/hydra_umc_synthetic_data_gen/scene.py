@@ -21,6 +21,17 @@ from dataclasses import dataclass
 DEFAULT_LABELS: tuple[str, ...] = ("bolt", "bracket", "gear", "connector")
 DEFECT_LABEL = "defect"
 
+# The class ids of every dataset: a fixed order, whatever labels a particular
+# run happens to contain. A model trained on one dataset and evaluated or
+# registered with another must see the same id for the same class.
+FIXED_CLASSES: tuple[str, ...] = DEFAULT_LABELS + (DEFECT_LABEL,)
+
+# A box is only kept when at least this share of the object is still visible
+# after the components painted later have covered it.
+MIN_VISIBILITY = 0.3
+# A scratch shorter than this many points is a speck, not a scratch.
+MIN_SCRATCH_POINTS = 4
+
 
 @dataclass(frozen=True)
 class ScratchPoint:
@@ -101,6 +112,63 @@ class Component:
     scratch: tuple[ScratchPoint, ...] | None = None
 
 
+def _scratch_box(scratch: tuple[ScratchPoint, ...], width: int, height: int) -> tuple[int, int, int, int] | None:
+    """(x, y, w, h) of the pixels a scratch really paints, clipped to the scene."""
+    xs: list[int] = []
+    ys: list[int] = []
+    for point in scratch:
+        for coordinate_list, value in ((xs, point.x), (ys, point.y)):
+            coordinate_list.extend((value - point.half_width, value + point.half_width))
+    if not xs:
+        return None
+    x0, x1 = max(0, min(xs)), min(width - 1, max(xs))
+    y0, y1 = max(0, min(ys)), min(height - 1, max(ys))
+    if x1 < x0 or y1 < y0:
+        return None
+    return x0, y0, x1 - x0 + 1, y1 - y0 + 1
+
+
+def _painted_cells(component: "Component", width: int, height: int) -> set[tuple[int, int]]:
+    """The pixels a component paints (what render.py paints for it)."""
+    cells: set[tuple[int, int]] = set()
+    if component.scratch is not None:
+        for point in component.scratch:
+            for oy in range(-point.half_width, point.half_width + 1):
+                for ox in range(-point.half_width, point.half_width + 1):
+                    px, py = point.x + ox, point.y + oy
+                    if 0 <= px < width and 0 <= py < height:
+                        cells.add((px, py))
+        return cells
+    for py in range(max(0, component.y), min(height, component.y + component.height)):
+        for px in range(max(0, component.x), min(width, component.x + component.width)):
+            cells.add((px, py))
+    return cells
+
+
+def visible_components(
+    components: tuple["Component", ...], width: int, height: int, min_visibility: float = MIN_VISIBILITY
+) -> tuple["Component", ...]:
+    """The components whose painted pixels are still visible enough after the
+    solid components painted later have covered them. A box on an object that
+    cannot be seen is a wrong label, so it is dropped. A scratch is only
+    covered by a later *solid* component (a later scratch blends over it)."""
+    solid_cover: list[set[tuple[int, int]]] = [set()] * len(components)
+    running: set[tuple[int, int]] = set()
+    for index in range(len(components) - 1, -1, -1):
+        solid_cover[index] = set(running)
+        if components[index].scratch is None:
+            running |= _painted_cells(components[index], width, height)
+    kept: list[Component] = []
+    for index, component in enumerate(components):
+        cells = _painted_cells(component, width, height)
+        if not cells:
+            continue
+        visible = len(cells - solid_cover[index]) / len(cells)
+        if visible >= min_visibility:
+            kept.append(component)
+    return tuple(kept)
+
+
 @dataclass(frozen=True)
 class Scene:
     width: int
@@ -169,14 +237,23 @@ def generate_scene(
             # overlay, or a scratch drawn via Bresenham's algorithm - see
             # generate_scratch()'s own docstring for why the scratch kind
             # exists alongside it rather than replacing it.
-            if rng.random() < 0.5:
-                scratch = generate_scratch(rng, dx, dy, dw, dh)
+            scratch = generate_scratch(rng, dx, dy, dw, dh) if rng.random() < 0.5 else None
+            box = _scratch_box(scratch, width, height) if scratch is not None and len(scratch) >= MIN_SCRATCH_POINTS else None
+            if scratch is not None and box is not None:
+                # the annotation is the box of the pixels the scratch really
+                # paints (thickness included), not the whole area it was drawn in
+                bx, by, bw, bh = box
                 components.append(
-                    Component(label=DEFECT_LABEL, x=dx, y=dy, width=dw, height=dh, color=(200, 30, 30), scratch=scratch)
+                    Component(label=DEFECT_LABEL, x=bx, y=by, width=bw, height=bh, color=(200, 30, 30), scratch=scratch)
                 )
             else:
                 components.append(
                     Component(label=DEFECT_LABEL, x=dx, y=dy, width=dw, height=dh, color=(200, 30, 30))
                 )
 
-    return Scene(width=width, height=height, background_color=background_color, components=tuple(components))
+    return Scene(
+        width=width,
+        height=height,
+        background_color=background_color,
+        components=visible_components(tuple(components), width, height),
+    )

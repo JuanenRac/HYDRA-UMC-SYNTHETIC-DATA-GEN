@@ -5,9 +5,10 @@
 # =============================================================================
 """Real YOLO and COCO annotation export from generated Scenes.
 
-Pixel-perfect by construction: bounding boxes come directly from the same
-Component coordinates scene.py placed and render.py painted - no detection
-model in the loop, so there is nothing to be inaccurate. TFRecord export
+Bounding boxes come directly from the same Component coordinates scene.py
+placed and render.py painted - no detection model in the loop. An object is
+only labelled while at least a third of it is still visible, and a scratch is
+boxed by the pixels it really paints. TFRecord export
 (also promised by the README) is future work - it needs a real TensorFlow
 dependency this v0 deliberately doesn't take on.
 """
@@ -17,7 +18,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .scene import Scene
+from .scene import FIXED_CLASSES, Scene
 
 
 @dataclass(frozen=True)
@@ -28,9 +29,11 @@ class Dataset:
 
 
 def class_names(dataset: Dataset) -> list[str]:
-    """Real, stable (sorted) list of every label seen across the dataset."""
-    names = {component.label for _, scene in dataset.scenes for component in scene.components}
-    return sorted(names)
+    """The class list, in a fixed order that does not depend on which labels a
+    run happens to contain (so class ids mean the same in every dataset). A
+    label outside the known set, if one is ever generated, goes after them."""
+    seen = {component.label for _, scene in dataset.scenes for component in scene.components}
+    return list(FIXED_CLASSES) + sorted(seen - set(FIXED_CLASSES))
 
 
 def export_yolo(dataset: Dataset, out_dir: Path) -> None:
