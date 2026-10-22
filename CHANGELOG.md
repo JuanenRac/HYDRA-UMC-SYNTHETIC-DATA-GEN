@@ -44,15 +44,6 @@ All notable changes to this project are documented here.
   pixel-level proof the render path actually blends scratch pixels
   against the background. 47/47 passing (was 42).
 
-## CI - real pytest suite now actually runs
-
-- **`.github/workflows/ci.yml`** - the real `tests/` pytest suite is now
-  actually installed and run in CI. The baseline workflow's Python
-  handling previously only compile-checked (`py_compile`) every `.py`
-  file and validated the manifest/docs - it never ran `pytest`, so a
-  regression in `tests/` could be merged without CI ever failing.
-  CI-only fix, no runtime code changed, no version bump.
-
 ## [0.0.7]
 
 - **Fixed a real bug found on code review: a small scene
@@ -105,3 +96,14 @@ All notable changes to this project are documented here.
 - **`pyproject.toml`** - packaging metadata, no runtime dependencies yet.
 - **`bump_version.py`** - ecosystem-standard odometer bump script.
 - **`build.sh` / `build.bat`**, **`run.sh` / `run.bat`** - venv creation, editable install, compile-check, and entry-point execution.
+
+## Earlier history
+
+### CI - real pytest suite now actually runs
+
+- **`.github/workflows/ci.yml`** - the real `tests/` pytest suite is now
+  actually installed and run in CI. The baseline workflow's Python
+  handling previously only compile-checked (`py_compile`) every `.py`
+  file and validated the manifest/docs - it never ran `pytest`, so a
+  regression in `tests/` could be merged without CI ever failing.
+  CI-only fix, no runtime code changed, no version bump.
