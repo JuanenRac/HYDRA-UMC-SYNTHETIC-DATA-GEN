@@ -18,6 +18,10 @@ semantic-versioning judgment calls:
 
 ---
 
+## [Unreleased]
+
+- Added `tools/hydra_project_tool.py`: the same `validate`, `test`, `version`, `status` and `bump` commands in every repository. The checks run with `HYDRA_UMC_CI=1` and fail if the version changes; only `bump` changes it.
+
 ## [0.1.0] - Stable class ids, labels that follow what is visible, no leakage between seeds
 
 - **Class ids are stable:** the YOLO class index and the COCO category id came from the labels present in that particular dataset, sorted alphabetically, so a run without a "defect" (or with a missing class) shifted every id. They now follow a fixed order (`bolt`, `bracket`, `gear`, `connector`, `defect`), written to `classes.txt` and to the manifest, whatever the run contains.
