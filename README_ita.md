@@ -96,7 +96,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # Media e diagrammi
 ├── tools/               # ci_validate.py - validazione manifest/CHANGELOG/docs usata dalla CI
 ├── pyproject.toml       # Metadati del pacchetto, dipendenze, version contachilometri
-├── bump_version.py      # Bump di version tipo contachilometri (usato da build.sh/.bat)
+├── bump_version.py      # Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)
 ├── bump_manifest_version.py # Sincronizza la versione di hydra-umc.project.json con quella nativa (--sync)
 ├── build.sh / build.bat # venv + installazione editabile (con extra dev) + test reali + compile-check
 └── run.sh / run.bat     # Esegue l'entry point dal venv locale (inoltra gli argomenti, es. `generate`)
@@ -110,7 +110,7 @@ Richiede Python 3.10+.
 
 ```bash
 # Linux / macOS
-./build.sh   # bump di version contachilometri, crea .venv, installa il
+./build.sh   # crea .venv, installa il
              # pacchetto in modalità editabile (con extra dev), esegue la
              # vera suite di test, compile-check di tutto src/
 ./run.sh     # esegue l'entry point da .venv, stampa nome + version + ruolo
@@ -122,7 +122,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` incrementano la version del proprio `pyproject.toml` di questo progetto seguendo la regola "contachilometri" dell'ecosistema (PATCH+1, con riporto a MINOR superato 9) prima di ogni build reale, eseguono la vera suite di test (`pytest tests/`), e poi fanno il compile-check del codice sorgente con `python -m compileall`.
+`build.sh`/`build.bat` non cambiano mai la versione (solo `python tools/hydra_project_tool.py bump` la alza), eseguono la vera suite di test (`pytest tests/`), e poi fanno il compile-check del codice sorgente con `python -m compileall`.
 
 Il vero sottocomando `generate` scrive un vero dataset su disco:
 

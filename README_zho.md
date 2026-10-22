@@ -101,7 +101,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # 媒体与图表
 ├── tools/               # ci_validate.py——CI 使用的 manifest/CHANGELOG/docs 校验
 ├── pyproject.toml       # 包元数据、依赖项、里程表版本号
-├── bump_version.py      # 里程表式版本递增（由 build.sh/.bat 使用）
+├── bump_version.py      # 里程表式版本递增（仅由显式 `bump` 命令运行）
 ├── bump_manifest_version.py # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ├── build.sh / build.bat # venv + 可编辑安装（含 dev 附加依赖）+ 真实测试 + 编译检查
 └── run.sh / run.bat     # 从本地 venv 运行入口点（转发参数，例如 `generate`）
@@ -115,7 +115,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 
 ```bash
 # Linux / macOS
-./build.sh   # 里程表式版本递增，创建 .venv，以可编辑模式（含 dev 附加
+./build.sh   # ，创建 .venv，以可编辑模式（含 dev 附加
              # 依赖）安装该包，运行真实测试套件，对整个 src/ 进行编译检查
 ./run.sh     # 从 .venv 运行入口点，打印名称 + 版本 + 角色
 ```
@@ -126,9 +126,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` 会在每次真实构建之前，按照生态系统的"里程表"
-规则（PATCH+1，超过 9 时进位到 MINOR）递增本项目自身的
-`pyproject.toml` 版本号，运行真实测试套件（`pytest tests/`），然后使用
+`build.sh`/`build.bat` 不会更改版本号（只有 `python tools/hydra_project_tool.py bump` 才会提升），运行真实测试套件（`pytest tests/`），然后使用
 `python -m compileall` 对源代码进行编译检查。
 
 真实的 `generate` 子命令会将真实数据集写入磁盘：

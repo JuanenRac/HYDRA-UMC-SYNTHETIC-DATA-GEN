@@ -96,7 +96,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # Médias et diagrammes
 ├── tools/               # ci_validate.py - validation manifest/CHANGELOG/docs utilisée par la CI
 ├── pyproject.toml       # Métadonnées du paquet, dépendances, version compteur kilométrique
-├── bump_version.py      # Incrément de version type compteur kilométrique (utilisé par build.sh/.bat)
+├── bump_version.py      # Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)
 ├── bump_manifest_version.py # Synchronise la version de hydra-umc.project.json avec la version native (--sync)
 ├── build.sh / build.bat # venv + installation éditable (avec extras dev) + tests réels + compile-check
 └── run.sh / run.bat     # Exécute le point d'entrée depuis le venv local (transmet les arguments, ex. `generate`)
@@ -110,7 +110,7 @@ Nécessite Python 3.10+.
 
 ```bash
 # Linux / macOS
-./build.sh   # incrément de version compteur kilométrique, crée .venv,
+./build.sh   # crée .venv,
              # installe le paquet en mode éditable (avec extras dev),
              # exécute la vraie suite de tests, compile-check de src/
 ./run.sh     # exécute le point d'entrée depuis .venv, affiche nom + version + rôle
@@ -122,7 +122,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` incrémentent la version du propre `pyproject.toml` de ce projet selon la règle "compteur kilométrique" de l'écosystème (PATCH+1, avec retenue vers MINOR au-delà de 9) avant chaque build réel, exécutent la vraie suite de tests (`pytest tests/`), puis effectuent un compile-check du code source avec `python -m compileall`.
+`build.sh`/`build.bat` ne changent jamais la version (seule `python tools/hydra_project_tool.py bump` la fait monter), exécutent la vraie suite de tests (`pytest tests/`), puis effectuent un compile-check du code source avec `python -m compileall`.
 
 La vraie sous-commande `generate` écrit un vrai jeu de données sur disque :
 

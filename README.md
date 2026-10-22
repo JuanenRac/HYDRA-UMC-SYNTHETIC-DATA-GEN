@@ -96,7 +96,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # Media and diagrams
 ├── tools/               # ci_validate.py - manifest/CHANGELOG/docs validation used by CI
 ├── pyproject.toml       # Package metadata, dependencies, odometer version
-├── bump_version.py      # Odometer-style version bump (used by build.sh/.bat)
+├── bump_version.py      # Odometer-style version bump (run only by the explicit `bump` command)
 ├── bump_manifest_version.py # Syncs hydra-umc.project.json's version to the native one (--sync)
 ├── build.sh / build.bat # venv + editable install (with dev extras) + real tests + compile-check
 └── run.sh / run.bat     # Runs the entry point from the local venv (forwards args, e.g. `generate`)
@@ -110,7 +110,7 @@ Requires Python 3.10+.
 
 ```bash
 # Linux / macOS
-./build.sh   # odometer version bump, creates .venv, installs the package
+./build.sh   # creates .venv, installs the package
              # in editable mode (with dev extras), runs the real test
              # suite, compile-checks all of src/
 ./run.sh     # runs the entry point from .venv, prints name + version + role
@@ -122,7 +122,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` bump this project's own `pyproject.toml` version following the ecosystem's "odometer" rule (PATCH+1, carrying into MINOR past 9) before every real build, run the real test suite (`pytest tests/`), then compile-check the source with `python -m compileall`.
+`build.sh`/`build.bat` never change the version (only `python tools/hydra_project_tool.py bump` raises it), run the real test suite (`pytest tests/`), then compile-check the source with `python -m compileall`.
 
 The real `generate` subcommand writes a real dataset to disk:
 

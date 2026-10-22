@@ -95,7 +95,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # Multimédia e diagramas
 ├── tools/               # ci_validate.py - validação de manifesto/CHANGELOG/documentação usada pelo CI
 ├── pyproject.toml       # Metadados do pacote, dependências, versão ao estilo conta-quilómetros
-├── bump_version.py      # Subida de versão ao estilo conta-quilómetros (usada pelo build.sh/.bat)
+├── bump_version.py      # Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)
 ├── bump_manifest_version.py # Sincroniza a versão do hydra-umc.project.json com a nativa (--sync)
 ├── build.sh / build.bat # venv + instalação editável (com extras de desenvolvimento) + testes reais + verificação de compilação
 └── run.sh / run.bat     # Executa o ponto de entrada a partir do venv local (reencaminha argumentos, por exemplo `generate`)
@@ -109,7 +109,7 @@ Requer o Python 3.10+.
 
 ```bash
 # Linux / macOS
-./build.sh   # subida de versão ao estilo conta-quilómetros, cria o .venv, instala o pacote
+./build.sh   # cria o .venv, instala o pacote
              # em modo editável (com extras de desenvolvimento), executa a suite de testes
              # real, verifica a compilação de todo o src/
 ./run.sh     # executa o ponto de entrada a partir do .venv, imprime nome + versão + papel

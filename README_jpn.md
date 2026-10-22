@@ -105,7 +105,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 ├── images/              # メディアと図表
 ├── tools/               # ci_validate.py —— CI が使用する manifest/CHANGELOG/docs の検証
 ├── pyproject.toml       # パッケージメタデータ、依存関係、オドメーターバージョン
-├── bump_version.py      # オドメーター式バージョンインクリメント（build.sh/.bat が使用）
+├── bump_version.py      # オドメーター式バージョンインクリメント（明示的な `bump` コマンドのみが実行）
 ├── bump_manifest_version.py # hydra-umc.project.json のバージョンをネイティブ側と同期（--sync）
 ├── build.sh / build.bat # venv + editable インストール（dev エクストラ付き）+ 実際のテスト + コンパイルチェック
 └── run.sh / run.bat     # ローカル venv からエントリポイントを実行（引数を転送、例：`generate`）
@@ -119,7 +119,7 @@ Python 3.10+ が必要です。
 
 ```bash
 # Linux / macOS
-./build.sh   # オドメーター式バージョンインクリメント、.venv を作成し、
+./build.sh   # 、.venv を作成し、
              # パッケージを editable モード（dev エクストラ付き）で
              # インストールし、実際のテストスイートを実行し、
              # src/ 全体をコンパイルチェックします
@@ -132,9 +132,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` は、実際の各ビルドの前に、エコシステムの
-「オドメーター」規則（PATCH+1、9 を超えると MINOR に繰り上がる）に
-従って本プロジェクト自身の `pyproject.toml` のバージョンを増加させ、
+`build.sh`/`build.bat` はバージョンを変更せず（上げるのは `python tools/hydra_project_tool.py bump` だけです）、
 実際のテストスイートを実行し（`pytest tests/`）、その後
 `python -m compileall` でソースをコンパイルチェックします。
 
