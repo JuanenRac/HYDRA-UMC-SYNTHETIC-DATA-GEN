@@ -23,10 +23,15 @@ def _row_size(width: int) -> int:
 
 
 def render_bmp(scene: Scene, path: Path) -> None:
-    """Render `scene` to a real BMP file at `path`."""
+    """Render `scene` to a real BMP file at `path`.
+
+    The image is held as one flat `bytearray` of BGR bytes per row (3 bytes a pixel) and rectangles are painted by
+    slice, not pixel by pixel: the old list of lists of tuples cost about 8 bytes of pointer per pixel plus a Python
+    loop over every one, minutes for a 4096x4096 scene. The bytes written are exactly the same."""
     width, height = scene.width, scene.height
 
-    pixels = [[scene.background_color for _ in range(width)] for _ in range(height)]
+    background = bytes((scene.background_color[2], scene.background_color[1], scene.background_color[0]))
+    pixels = [bytearray(background * width) for _ in range(height)]
     for comp in scene.components:
         if comp.scratch is not None:
             # Blended into whatever's already painted beneath it (the
@@ -38,21 +43,21 @@ def render_bmp(scene: Scene, path: Path) -> None:
                     for ox in range(-sp.half_width, sp.half_width + 1):
                         px, py = sp.x + ox, sp.y + oy
                         if 0 <= px < width and 0 <= py < height:
-                            base = pixels[py][px]
-                            pixels[py][px] = (
-                                int(base[0] * (1 - sp.opacity) + comp.color[0] * sp.opacity),
-                                int(base[1] * (1 - sp.opacity) + comp.color[1] * sp.opacity),
-                                int(base[2] * (1 - sp.opacity) + comp.color[2] * sp.opacity),
-                            )
+                            row = pixels[py]
+                            offset = px * 3
+                            # the row holds B, G, R; the blend is the one the tuple version computed per channel
+                            row[offset] = int(row[offset] * (1 - sp.opacity) + comp.color[2] * sp.opacity)
+                            row[offset + 1] = int(row[offset + 1] * (1 - sp.opacity) + comp.color[1] * sp.opacity)
+                            row[offset + 2] = int(row[offset + 2] * (1 - sp.opacity) + comp.color[0] * sp.opacity)
             continue
         y_start = max(0, comp.y)
         y_end = min(height, comp.y + comp.height)
         x_start = max(0, comp.x)
         x_end = min(width, comp.x + comp.width)
-        for py in range(y_start, y_end):
-            row = pixels[py]
-            for px in range(x_start, x_end):
-                row[px] = comp.color
+        if x_end > x_start:
+            fill = bytes((comp.color[2], comp.color[1], comp.color[0])) * (x_end - x_start)
+            for py in range(y_start, y_end):
+                pixels[py][x_start * 3 : x_end * 3] = fill
 
     row_size = _row_size(width)
     pixel_data_size = row_size * height
@@ -70,10 +75,7 @@ def render_bmp(scene: Scene, path: Path) -> None:
         )
         padding = b"\x00" * (row_size - width * 3)
         for y in range(height - 1, -1, -1):
-            row_bytes = bytearray()
-            for r, g, b in pixels[y]:
-                row_bytes += bytes((b, g, r))
-            f.write(row_bytes)
+            f.write(pixels[y])
             f.write(padding)
 
 

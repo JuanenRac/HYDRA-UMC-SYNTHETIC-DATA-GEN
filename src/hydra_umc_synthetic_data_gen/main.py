@@ -21,9 +21,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import math
+import os
 import random
 import secrets
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -32,6 +34,7 @@ from .manifest import build_manifest, write_manifest
 from .render import render_bmp
 from .scene import FIXED_CLASSES, generate_scene
 from .validate import validate_dataset
+from .verify import verify_output
 
 PROJECT_NAME = "HYDRA-UMC-SYNTHETIC-DATA-GEN"
 DIST_NAME = "hydra-umc-synthetic-data-gen"
@@ -48,6 +51,31 @@ MAX_COMPONENTS = 1_000
 # the disk of the machine it runs on (a CM5 has a few tens of GB). The size of the whole
 # dataset is bounded as well.
 MAX_DATASET_BYTES = 4 * 1024**3
+
+
+MAX_JOBS = 32
+
+
+def _scene_seed(base_seed: int, index: int) -> int:
+    """Each scene's seed is a hash of the base seed and its index, so two runs with nearby seeds (train 0, val 50) do
+    not share scenes, and a scene never depends on how many other scenes there are or on which process makes it."""
+    digest = hashlib.sha256(f"{base_seed}:{index}".encode("ascii")).digest()
+    return int.from_bytes(digest[:8], "big")
+
+
+def _make_scene(task: tuple[int, int, int, int, int, float, str]) -> tuple[str, object]:
+    """Generate and render one scene. Top level so a worker process can run it; the result depends only on the task."""
+    base_seed, index, width, height, components, defect_rate, images_dir = task
+    scene = generate_scene(
+        random.Random(_scene_seed(base_seed, index)),
+        width=width,
+        height=height,
+        num_components=components,
+        defect_probability=defect_rate,
+    )
+    image_name = f"scene_{index:04d}.bmp"
+    render_bmp(scene, Path(images_dir) / image_name)
+    return image_name, scene
 
 
 def get_version() -> str:
@@ -71,6 +99,8 @@ def _run_generate(args: argparse.Namespace) -> int:
     for label, value in (("--width", args.width), ("--height", args.height)):
         if not MIN_DIMENSION <= value <= MAX_DIMENSION:
             errors.append(f"{label} must be in {MIN_DIMENSION}..{MAX_DIMENSION}")
+    if not 1 <= args.jobs <= MAX_JOBS:
+        errors.append(f"--jobs must be in 1..{MAX_JOBS}")
     if not 1 <= args.components <= MAX_COMPONENTS:
         errors.append(f"--components must be in 1..{MAX_COMPONENTS}")
     if not math.isfinite(args.defect_rate) or not 0.0 <= args.defect_rate <= 1.0:
@@ -99,26 +129,22 @@ def _run_generate(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    scenes: list[tuple[str, object]] = []
 
     # Without --seed one is drawn and recorded, so the dataset can always be reproduced.
     base_seed = args.seed if args.seed is not None else secrets.randbits(31)
 
-    for index in range(args.count):
-        # Each scene's seed is a hash of the base seed and its index, so two
-        # runs with nearby seeds (train 0, val 50) do not share scenes.
-        digest = hashlib.sha256(f"{base_seed}:{index}".encode("ascii")).digest()
-        rng = random.Random(int.from_bytes(digest[:8], "big"))
-        scene = generate_scene(
-            rng,
-            width=args.width,
-            height=args.height,
-            num_components=args.components,
-            defect_probability=args.defect_rate,
-        )
-        image_name = f"scene_{index:04d}.bmp"
-        render_bmp(scene, images_dir / image_name)
-        scenes.append((image_name, scene))
+    tasks = [
+        (base_seed, index, args.width, args.height, args.components, args.defect_rate, str(images_dir))
+        for index in range(args.count)
+    ]
+    jobs = min(args.jobs, os.cpu_count() or 1, args.count)
+    if jobs > 1:
+        # Every scene has its own random generator seeded from (seed, index), so the scenes come out the same as with
+        # one job; map() keeps them in order.
+        with ProcessPoolExecutor(max_workers=jobs) as pool:
+            scenes = list(pool.map(_make_scene, tasks, chunksize=max(1, args.count // (jobs * 4))))
+    else:
+        scenes = [_make_scene(task) for task in tasks]
 
     dataset = Dataset(scenes=tuple(scenes))
 
@@ -151,13 +177,26 @@ def _run_generate(args: argparse.Namespace) -> int:
     print(f"Seed: {base_seed} ({'given' if args.seed is not None else 'drawn at random and recorded in the manifest'})")
     print(f"Manifest written -> {out_dir / 'manifest.json'}")
 
+    # what is on disk, read back: the labels and annotations against the scenes, the images against the manifest
+    issues = list(issues) + verify_output(out_dir)
     if issues:
         print(f"VALIDATION FAILED - {len(issues)} issue(s):")
         for issue in issues:
             print(f"  [{issue.kind}] {issue.detail}")
         return 1
 
-    print("Validation: OK (scene bounds, BMP integrity, label distribution)")
+    print("Validation: OK (scene bounds, BMP integrity, label distribution, exported files against the manifest)")
+    return 0
+
+
+def _run_verify(args: argparse.Namespace) -> int:
+    issues = verify_output(args.out)
+    if issues:
+        print(f"VERIFY=FAIL {len(issues)} issue(s) in {args.out}:")
+        for issue in issues:
+            print(f"  [{issue.kind}] {issue.detail}")
+        return 1
+    print(f"VERIFY=PASS {args.out} is what its manifest says")
     return 0
 
 
@@ -184,6 +223,15 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument(
         "--format", choices=("yolo", "coco", "both"), default="both", help="Annotation export format (default: both)."
     )
+    generate_parser.add_argument(
+        "--jobs", type=int, default=1,
+        help=f"Processes that render scenes (default: 1, up to {MAX_JOBS}). The dataset is the same whatever the number.",
+    )
+
+    verify_parser = subparsers.add_parser(
+        "verify", help="Read a dataset folder back and check it against its own manifest (images, labels, annotations, classes)."
+    )
+    verify_parser.add_argument("--out", type=Path, required=True, help="The dataset folder to check.")
 
     return parser
 
@@ -194,6 +242,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "generate":
         return _run_generate(args)
+    if args.command == "verify":
+        return _run_verify(args)
 
     _print_identity()
     return 0

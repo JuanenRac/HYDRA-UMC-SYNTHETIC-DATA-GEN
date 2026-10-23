@@ -28,6 +28,13 @@ class Dataset:
     scenes: tuple[tuple[str, Scene], ...]
 
 
+def _write_lf(path: Path, text: str) -> None:
+    """Write text with `\n` line ends on every platform, so the files (and the hash of classes.txt) are the same bytes
+    wherever the dataset is made."""
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text)
+
+
 def class_names(dataset: Dataset) -> list[str]:
     """The class list, in a fixed order that does not depend on which labels a
     run happens to contain (so class ids mean the same in every dataset). A
@@ -43,7 +50,7 @@ def export_yolo(dataset: Dataset, out_dir: Path) -> None:
 
     labels_dir = out_dir / "labels"
     labels_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "classes.txt").write_text("\n".join(labels) + "\n", encoding="utf-8")
+    _write_lf(out_dir / "classes.txt", "\n".join(labels) + "\n")
 
     for image_name, scene in dataset.scenes:
         lines = []
@@ -55,7 +62,7 @@ def export_yolo(dataset: Dataset, out_dir: Path) -> None:
             lines.append(f"{class_index[component.label]} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
         stem = Path(image_name).stem
         text = "\n".join(lines) + ("\n" if lines else "")
-        (labels_dir / f"{stem}.txt").write_text(text, encoding="utf-8")
+        _write_lf(labels_dir / f"{stem}.txt", text)
 
 
 def export_coco(dataset: Dataset, out_path: Path) -> None:
@@ -86,4 +93,4 @@ def export_coco(dataset: Dataset, out_path: Path) -> None:
     payload = {"images": images, "annotations": annotations, "categories": categories}
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    _write_lf(out_path, json.dumps(payload, indent=2))

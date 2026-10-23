@@ -20,7 +20,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .export import Dataset
+from .export import Dataset, class_names
 from .scene import Scene
 from .validate import ValidationIssue
 
@@ -46,10 +46,20 @@ class DatasetManifest:
     format: str
     scenes: tuple[SceneManifestEntry, ...]
     validation_issues: tuple[str, ...]
+    # The class list exactly as the exports use it (FIXED_CLASSES first, then any other label seen), in order, and a
+    # hash of it: a consumer that registers a model trained on this dataset can check that the class order it was
+    # trained with is this one. The hash is of the text of classes.txt, so `sha256sum classes.txt` gives the same.
+    classes: tuple[str, ...] = ()
+    classes_sha256: str = ""
 
     @property
     def is_clean(self) -> bool:
         return len(self.validation_issues) == 0
+
+
+def classes_hash(classes: tuple[str, ...] | list[str]) -> str:
+    """sha256 of the class list written as classes.txt writes it: one name a line, a final newline."""
+    return hashlib.sha256(("\n".join(classes) + "\n").encode("utf-8")).hexdigest()
 
 
 def _sha256_file(path: Path) -> str:
@@ -85,6 +95,7 @@ def build_manifest(
         )
         for image_name, scene in dataset.scenes
     )
+    classes = tuple(class_names(dataset))
     return DatasetManifest(
         seed=seed,
         reproducible=seed is not None,
@@ -97,6 +108,8 @@ def build_manifest(
         format=fmt,
         scenes=scene_entries,
         validation_issues=tuple(f"{issue.kind}: {issue.detail}" for issue in issues),
+        classes=classes,
+        classes_sha256=classes_hash(classes),
     )
 
 
@@ -121,5 +134,8 @@ def write_manifest(manifest: DatasetManifest, path: Path) -> None:
             for entry in manifest.scenes
         ],
         "validation_issues": list(manifest.validation_issues),
+        "classes": list(manifest.classes),
+        "classes_sha256": manifest.classes_sha256,
     }
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, indent=2))

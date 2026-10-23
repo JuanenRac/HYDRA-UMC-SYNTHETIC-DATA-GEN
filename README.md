@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
 </p>
 
-**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), a real randomized defect overlay - either the original solid rectangle, or (50% of the time) a real scratch drawn via Bresenham's line algorithm with randomized per-point width/opacity - and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (58 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
+**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), a real randomized defect overlay - either the original solid rectangle, or (50% of the time) a real scratch drawn via Bresenham's line algorithm with randomized per-point width/opacity - and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (82 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
 
 **Labels, classes and splits:** class ids are fixed (`bolt`, `bracket`, `gear`, `connector`, `defect` = 0 to 4, also written to `classes.txt` and the manifest) whatever labels a run contains, so datasets can be merged and models registered with the same order. An object is only labelled while at least 30 % of it is visible after the components painted later cover it, and a scratch is boxed by the pixels it really paints, so the boxes follow the image closely but are not guaranteed to be exact. Each scene's seed is a hash of the base seed and its index, so train and validation runs with different `--seed` values share no scenes; without `--seed` one is drawn and recorded in the manifest. `generate` refuses an `--out` folder that already holds a dataset, so old files never mix with new ones. There is no train/validation/test split option yet: generate each split into its own folder with its own seed.
 
@@ -28,7 +28,7 @@
 |---|---|
 | Version | `0.1.0` |
 | Maturity | Established |
-| Tests | 58 (`pytest`) |
+| Tests | 82 (`pytest`) |
 | Stack | Python / procedural scene generation / YOLO/COCO annotation export |
 | Target | The PC of the person using it |
 | On real hardware | Not applicable: nothing here runs on hardware |
@@ -132,6 +132,8 @@ The real `generate` subcommand writes a real dataset to disk:
 # Windows
 run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --seed 42 --format both
 ```
+
+`--jobs N` renders the scenes in N processes (default 1): every scene has its own random generator seeded from the seed and its index, so the dataset is the same whatever N is. The manifest now records the class list (`classes`) and its hash (`classes_sha256`, the sha256 of `classes.txt`) so whoever registers a model trained on the dataset can check the class order. `verify --out dataset/` reads a dataset folder back: the images against the manifest checksums, the YOLO labels (five fields, a known class id, everything inside [0, 1]), the COCO file (unique ids, boxes inside the image) and the number of labels against the manifest; `generate` runs the same check on its own output. The BMP renderer paints by slice instead of by pixel (the same bytes, much faster on large images). Tested; the check on the DETECTION-HEF side that would compare the hash does not exist yet.
 
 Writes real BMP images to `dataset/images/`, real YOLO labels to `dataset/labels/` + `dataset/classes.txt`, and/or a real `dataset/annotations.json` in COCO format, depending on `--format`. A given `--seed` makes the dataset byte-for-byte reproducible.
 

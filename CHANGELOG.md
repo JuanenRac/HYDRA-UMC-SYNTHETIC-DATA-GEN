@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **`verify --out DIR`, and `generate` runs it on its own output**: the folder is read back and checked against its manifest and against itself: every image against the sha256 of the manifest, the YOLO labels (five fields, a class id that exists, every value inside [0, 1], the box inside the image, as many lines as components), the COCO file (unique image, annotation and category ids, no dangling references, boxes inside the image, `area = width x height`, as many annotations as components), the labels per class, `classes.txt` against the class list of the manifest, and files that belong to no scene. A manifest from an older version is checked as far as it allows.
+- **The manifest records the class list and its hash** (`classes`, `classes_sha256`, the sha256 of the text of `classes.txt`) so a model registered in DETECTION-HEF can be checked against the order it was trained with. The check on the DETECTION-HEF side is not written yet.
+- **`--jobs N` (default 1, at most 32)** renders scenes in N processes; every scene has its own random generator seeded from the seed and its index, so the manifest, the labels and the images are the same whatever N is (tested).
+- **The BMP renderer paints by slice** on flat rows of bytes instead of a list of lists of tuples with a loop per pixel (the old shape cost about 8 bytes of pointer per pixel): the bytes written are identical, checked against the old renderer on random scenes.
+- The labels, `classes.txt`, the COCO file and the manifest are written with `\n` line ends on every platform, so a dataset made on Windows has the same bytes (and the same `classes_sha256`) as one made on Linux.
+- 24 new tests (82 in all).
 - Building no longer changes the version; raising it is the explicit `bump` command (`python tools/hydra_project_tool.py bump`). The build scripts only report the version they built, and CI fails if a build script runs a bump.
 - The banner follows the animated style of the ecosystem banners, with the name, the kind and the technologies of the project.
 - **The licence declared in the package metadata is GPL-3.0-or-later,** like the headers of the code and the rest of the ecosystem (it said GPL-3.0-only).
