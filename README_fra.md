@@ -102,7 +102,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── export.py           # Export réel des annotations YOLO/COCO
 │   ├── manifest.py           # Vrai manifest.json du jeu de données (graine, sommes de contrôle)
 │   ├── validate.py           # Vraie validation limites/intégrité BMP/distribution
-│   └── main.py               # Point d'entrée + sous-commande réelle `generate`
+│   ├── main.py               # Point d'entrée + sous-commande réelle `generate`
+│   └── verify.py             # Vérifie un dossier de jeu de données terminé par rapport à son manifeste et à lui-même (sommes de contrôle, étiquettes YOLO, annotations COCO)
 ├── tests/               # Tests réels : génération, rendu, export, CLI de bout en bout
 ├── docs/                # Documentation et guides procéduraux
 ├── build/               # Sortie de build (le .venv local vit aussi à la racine du dépôt)

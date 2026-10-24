@@ -111,7 +111,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── export.py           # 実際の YOLO/COCO アノテーションエクスポート
 │   ├── manifest.py           # 実際のデータセット manifest.json（シード、チェックサム）
 │   ├── validate.py           # 実際の境界/BMP 整合性/分布の検証
-│   └── main.py               # エントリポイント + 実際の `generate` サブコマンド
+│   ├── main.py               # エントリポイント + 実際の `generate` サブコマンド
+│   └── verify.py             # 完成したデータセットフォルダーを自身のマニフェストおよび内部整合性で検査 (チェックサム、YOLO ラベル、COCO 注釈)
 ├── tests/               # 実際のテスト：生成、レンダリング、エクスポート、エンドツーエンド CLI
 ├── docs/                # ドキュメントとプロシージャル生成ガイド
 ├── build/               # ビルド出力（ローカルの .venv もリポジトリルートに存在）

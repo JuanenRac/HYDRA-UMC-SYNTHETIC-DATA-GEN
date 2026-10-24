@@ -101,7 +101,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── export.py           # Exportação real de anotações YOLO/COCO
 │   ├── manifest.py           # manifest.json real do conjunto de dados (semente, somas de verificação)
 │   ├── validate.py           # Verificações reais de limites/integridade do BMP/distribuição
-│   └── main.py               # Ponto de entrada + subcomando real `generate`
+│   ├── main.py               # Ponto de entrada + subcomando real `generate`
+│   └── verify.py             # Verifica uma pasta de dataset terminada face ao seu próprio manifesto e a si mesma (somas de verificação, etiquetas YOLO, anotações COCO)
 ├── tests/               # Testes reais: geração, renderização, exportação, CLI de ponta a ponta
 ├── docs/                # Documentação e guias procedurais
 ├── build/               # Saída da compilação (o .venv local também vive na raiz do repositório)

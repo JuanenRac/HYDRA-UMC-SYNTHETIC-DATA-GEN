@@ -107,7 +107,8 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── export.py           # 真实的 YOLO/COCO 标注导出
 │   ├── manifest.py           # 真实的数据集 manifest.json（种子、校验和）
 │   ├── validate.py           # 真实的边界/BMP 完整性/分布验证
-│   └── main.py               # 入口点 + 真实的 `generate` 子命令
+│   ├── main.py               # 入口点 + 真实的 `generate` 子命令
+│   └── verify.py             # 对照自身的清单及内部一致性检查完成的数据集文件夹 (校验和、YOLO 标签、COCO 标注)
 ├── tests/               # 真实测试：生成、渲染、导出、端到端 CLI
 ├── docs/                # 文档与程序化生成指南
 ├── build/               # 构建输出（本地 .venv 也位于仓库根目录）
