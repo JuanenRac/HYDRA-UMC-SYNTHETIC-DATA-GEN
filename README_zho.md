@@ -26,9 +26,9 @@
 
 | | |
 |---|---|
-| 版本 | `0.1.0` |
+| 版本 | `0.1.1` |
 | 成熟度 | 成熟 |
-| 测试 | 82 (`pytest`) |
+| 测试 | 58 (`pytest`) |
 | 技术栈 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 不适用：这里的内容不在硬件上运行 |

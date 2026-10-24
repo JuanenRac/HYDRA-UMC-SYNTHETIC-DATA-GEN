@@ -26,9 +26,9 @@
 
 | | |
 |---|---|
-| Version | `0.1.0` |
+| Version | `0.1.1` |
 | Reifegrad | Etabliert |
-| Tests | 82 (`pytest`) |
+| Tests | 58 (`pytest`) |
 | Technik | Python / procedural scene generation / YOLO/COCO annotation export |
 | Ziel | Der PC der Person, die es benutzt |
 | Auf echter Hardware | Nicht zutreffend: nichts hiervon läuft auf Hardware |

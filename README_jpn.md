@@ -26,9 +26,9 @@
 
 | | |
 |---|---|
-| バージョン | `0.1.0` |
+| バージョン | `0.1.1` |
 | 成熟度 | 確立 |
-| テスト | 82 (`pytest`) |
+| テスト | 58 (`pytest`) |
 | 技術 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 対象 | 利用者の PC |
 | 実機での確認 | 対象外：ここにあるものはハードウェア上では動きません |

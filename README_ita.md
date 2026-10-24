@@ -26,9 +26,9 @@
 
 | | |
 |---|---|
-| Versione | `0.1.0` |
+| Versione | `0.1.1` |
 | Maturità | Consolidato |
-| Test | 82 (`pytest`) |
+| Test | 58 (`pytest`) |
 | Tecnologia | Python / procedural scene generation / YOLO/COCO annotation export |
 | Destinazione | Il PC di chi lo usa |
 | Su hardware reale | Non applicabile: nulla qui gira su hardware |
