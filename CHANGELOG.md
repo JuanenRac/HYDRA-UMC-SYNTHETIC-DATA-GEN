@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
+
 - **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
 - The README in the eight languages gives the real order of the build scripts (compile-check, then the test suite) and, in Portuguese, no longer says that the build raises the version.
 
@@ -106,7 +108,7 @@ All notable changes to this project are documented here.
 
 - **`src/hydra_umc_synthetic_data_gen/main.py`** - minimal real entry point. No generation logic yet - procedural scene randomization, physics-based rendering through HYDRA-UMC-TWIN, and automatic YOLO/COCO/TFRecord annotation export land in a later pass.
 - **`pyproject.toml`** - packaging metadata, no runtime dependencies yet.
-- **`bump_version.py`** - ecosystem-standard odometer bump script.
+- **`bump_version.py`** - ecosystem-standard version bump script.
 - **`build.sh` / `build.bat`**, **`run.sh` / `run.bat`** - venv creation, editable install, compile-check, and entry-point execution.
 
 ## Earlier history

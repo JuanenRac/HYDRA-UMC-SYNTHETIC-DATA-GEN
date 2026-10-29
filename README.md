@@ -1,26 +1,33 @@
+<!-- =============================================================================
+HYDRA-UMC-SYNTHETIC-DATA-GEN - Procedural training datasets with exact labels
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-SYNTHETIC-DATA-GEN banner" width="100%">
 </p>
 
-# 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
+# 📸 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
 <p align="center">🇺🇸 <b>English</b> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Procedural Dataset Generator for Vision AI Node Training
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
+  <img src="https://img.shields.io/badge/Tests-82%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
-
-**Honesty check - what actually runs today:** procedural 2D scene generation with seeded-deterministic component placement/size/color (`scene.py`), real stdlib-only 24-bit BMP rasterization - flat-shaded rectangles, not photorealistic rendering (`render.py`), real pixel-perfect YOLO and COCO annotation export - bounding boxes come directly from the same coordinates the scene placed and the renderer painted, so there is no detection model in the loop to be inaccurate (`export.py`), a real randomized defect overlay - either the original solid rectangle, or (50% of the time) a real scratch drawn via Bresenham's line algorithm with randomized per-point width/opacity - and a real `manifest.json` plus post-generation validation (scene-bounds, BMP-integrity, label-distribution) are all real and tested (82 tests, `pytest`). What is NOT real: photorealistic 3D rendering, segmentation masks, keypoints, multi-camera views and TFRecord export - all of these need HYDRA-UMC-TWIN's actual physics/rendering engine, which doesn't exist yet (that project is itself still scaffolding), or (TFRecord) a real TensorFlow dependency this v0 deliberately doesn't take on. See `CHANGELOG.md` for exactly what has shipped so far, and the ROADMAP below for what remains open.
-
-**Labels, classes and splits:** class ids are fixed (`bolt`, `bracket`, `gear`, `connector`, `defect` = 0 to 4, also written to `classes.txt` and the manifest) whatever labels a run contains, so datasets can be merged and models registered with the same order. An object is only labelled while at least 30 % of it is visible after the components painted later cover it, and a scratch is boxed by the pixels it really paints, so the boxes follow the image closely but are not guaranteed to be exact. Each scene's seed is a hash of the base seed and its index, so train and validation runs with different `--seed` values share no scenes; without `--seed` one is drawn and recorded in the manifest. `generate` refuses an `--out` folder that already holds a dataset, so old files never mix with new ones. There is no train/validation/test split option yet: generate each split into its own folder with its own seed.
 
 ---
 
 > **Safety and security status:** this ecosystem is not a certified safety system. There is no hardware E-STOP path, no firmware-enforced limits or interlocks and no verified motion command yet; firmware images are checked with CRC32 and a shared-key HMAC-SHA256, not with an asymmetric signature; TLS and mutual TLS are optional and off by default; no custom board has been populated or tested yet. Read the [security baseline](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) and the [threat model](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) before relying on any statement here for the safety of a person.
+
+---
 
 ## 📋 At a glance
 
@@ -28,10 +35,12 @@
 |---|---|
 | Version | `0.1.1` |
 | Maturity | Established |
-| Tests | 58 (`pytest`) |
+| Tests | 82 (`python -m pytest -q tests`) |
 | Stack | Python / procedural scene generation / YOLO/COCO annotation export |
 | Target | The PC of the person using it |
 | On real hardware | Not applicable: nothing here runs on hardware |
+
+**Jump to:** [Overview](#-overview) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Testing](#-testing) · [Repository Structure](#-repository-structure) · [Related Projects](#-related-projects)
 
 ## 🚦 Project status
 
@@ -42,11 +51,11 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟢 | Complete for its purpose and stable; the honesty check above lists the known limits |
-| Tests | 🟢 | 58 automated tests, run on every change |
+| Tests | 🟢 | 82 automated tests, run on every change |
 | Real hardware | 🟢 | Not applicable: nothing here runs on hardware |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
 
-## 1. 🛠️ TECHNICAL OVERVIEW
+## 🎯 Overview
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** is the data factory for the Vision AI Node. It leverages the Digital Twin's physics and rendering engines to procedurally generate thousands of labeled images for training neural networks.
 
@@ -59,9 +68,18 @@ It solves the "cold start" problem for new industrial components or rare defect 
 * 🛠️ **Defect Injection (v0):** Real, randomized defect overlay per component, at a configurable probability - either a solid rectangle, or a real Bresenham-line scratch with randomized per-point width/opacity. *(implemented - missing-part/solder-bridge shapes are still planned)*
 * 📋 **Dataset Manifest & Validation (v0):** Every `generate` run writes a real `manifest.json` (reproducible-seed flag, generation parameters, and a per-image sha256 checksum) and runs real post-generation validation - scene-bounds checking, BMP-integrity checking against the exact known-good file layout, and label-distribution sanity - exiting non-zero if any real issue is found.
 
----
+## 🧩 Role in HYDRA-UMC
 
-## 2. 🔄 GENERATION PIPELINE
+**HYDRA-UMC-SYNTHETIC-DATA-GEN** writes small training datasets for the vision nodes: random scenes of components, with the bounding boxes taken from the same coordinates that drew them, exported as YOLO or COCO together with a manifest of how the set was made. Today the scenes are flat 2D shapes; rendering through the Digital Twin is planned.
+
+## 🏛️ Architecture
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-SYNTHETIC-DATA-GEN architecture" width="100%">
+</p>
+
+<details>
+<summary>Text version of the diagram (Mermaid)</summary>
 
 ```mermaid
 flowchart LR
@@ -72,9 +90,9 @@ flowchart LR
     DATASET --> TRAIN["Vision Node Training"]
 ```
 
----
+</details>
 
-## 3. 🧱 ARCHITECTURE & DESIGN DECISIONS
+### ARCHITECTURE & DESIGN DECISIONS
 
 * **Why this generator has no `hardware/`/`firmware/`/`os/` folders.** Pure software - it renders scenes through HYDRA-UMC-TWIN's own engine rather than owning any hardware itself.
 * **Why it's a sibling, not a submodule, of HYDRA-UMC-TWIN.** Dataset generation is a batch, offline workload (potentially hours of rendering) fundamentally different from the twin's own real-time loop - keeping it separate means a long export run never competes with real-time simulation for the same process's CPU/GPU time.
@@ -85,40 +103,23 @@ flowchart LR
 * **Why validation reuses `render.py`'s own row-size formula instead of a second, independent parser.** `validate_bmp_integrity()` imports `render.py`'s `_row_size()` directly rather than re-deriving the BMP row-padding math - one source of truth for the exact byte layout means a real future change to the writer can't silently desynchronize from the checker.
 * **Why "reproducible" is a manifest field, not just an unstated property of `--seed`.** `--seed` already made generation deterministic before this change, but nothing recorded whether a given dataset on disk actually used one - a consumer had no way to tell a reproducible run from a random one after the fact. `manifest.json`'s `reproducible` flag plus a real per-image sha256 makes that claim checkable.
 
----
+## 🚀 Quick start
 
-## 📂 DIRECTORY STRUCTURE
+Requires Python 3.10 or newer.
 
-Pure software dataset generator, no own hardware design - so this project
-carries no `hardware/`, `firmware/` or `os/` folders under the repository
-structure policy.
-
-```text
-HYDRA-UMC-SYNTHETIC-DATA-GEN/
-├── src/hydra_umc_synthetic_data_gen/
-│   ├── __init__.py            # Package version
-│   ├── scene.py          # Real procedural 2D scene/component generation
-│   ├── render.py          # Real stdlib-only BMP rasterization
-│   ├── export.py           # Real YOLO/COCO annotation export
-│   ├── manifest.py           # Real dataset manifest.json (seed, checksums)
-│   ├── validate.py           # Real bounds/BMP-integrity/distribution checks
-│   ├── main.py               # Entry point + real `generate` subcommand
-│   └── verify.py             # Checks a finished dataset folder against its own manifest and against itself (checksums, YOLO labels, COCO annotations)
-├── tests/               # Real tests: generation, rendering, export, end-to-end CLI
-├── docs/                # Documentation and procedural guides
-├── build/               # Build output (the local .venv also lives at repo root)
-├── images/              # Media and diagrams
-├── tools/               # ci_validate.py - manifest/CHANGELOG/docs validation used by CI
-├── pyproject.toml       # Package metadata, dependencies, odometer version
-├── bump_version.py      # Odometer-style version bump (run only by the explicit `bump` command)
-├── bump_manifest_version.py # Syncs hydra-umc.project.json's version to the native one (--sync)
-├── build.sh / build.bat # venv + editable install (with dev extras) + real tests + compile-check
-└── run.sh / run.bat     # Runs the entry point from the local venv (forwards args, e.g. `generate`)
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh generate --out ./out --count 10 --seed 42
+./run.sh generate --out ./out --format yolo --defect-rate 0.3
 ```
 
----
+## 🧪 Testing
 
-## 🏗️ BUILD AND RUN GUIDE
+82 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
+
+The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
+
+## 🏗️ Build & Release
 
 Requires Python 3.10+.
 
@@ -180,15 +181,56 @@ Validation: OK (scene bounds, BMP integrity, label distribution)
 
 If validation finds a real problem (an out-of-range component, a truncated/corrupt BMP, or a defect rate that drifted far from `--defect-rate`), `generate` exits `1` and lists every issue instead of silently shipping a bad dataset.
 
----
+## 📂 Repository Structure
 
-## 🚀 ROADMAP
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-SYNTHETIC-DATA-GEN" width="100%">
+</p>
+
+<details>
+<summary>Text version of the tree</summary>
+
+```text
+HYDRA-UMC-SYNTHETIC-DATA-GEN/
+├── src/hydra_umc_synthetic_data_gen/   source code
+│   ├── __init__.py                     Package version
+│   ├── scene.py                        Real procedural 2D scene/component generation
+│   ├── render.py                       Real stdlib-only BMP rasterization
+│   ├── export.py                       Real YOLO/COCO annotation export
+│   ├── manifest.py                     Real dataset manifest.json (seed, checksums)
+│   ├── validate.py                     Real bounds/BMP-integrity/distribution checks
+│   ├── main.py                         Entry point + real `generate` subcommand
+│   └── verify.py                       Checks a finished dataset folder against its own manifest and against itself (checksums, YOLO labels, COCO annotations)
+├── tests/                              Real tests: generation, rendering, export, end-to-end CLI
+├── docs/                               Documentation and procedural guides
+├── images/                             Media and diagrams
+├── tools/                              ci_validate.py - manifest/CHANGELOG/docs validation used by CI
+├── .github/                            CI workflow and issue templates
+├── pyproject.toml                      package metadata
+├── bump_version.py                     explicit version bump
+├── bump_manifest_version.py            Syncs hydra-umc.project.json's version to the native one (--sync)
+├── build.sh / build.bat                venv + editable install (with dev extras) + real tests + compile-check
+├── run.sh / run.bat                    Runs the entry point from the local venv (forwards args, e.g. `generate`)
+├── CHANGELOG.md                        what changed in each version
+├── build-test.sh                       non-mutating build check
+├── hydra-umc.project.json              manifest: version, maturity, family
+└── test.sh                             runs the tests
+```
+
+</details>
+
+## 🗺️ Roadmap & Known limits
+
+**Known limits today**
+
 * **Phase 1:** Digital Twin synchronization with real-time hardware telemetry and sub-10ms latency.
 * **Phase 2:** Physics Replica integration with industrial-grade simulators (Isaac Sim) and deformable body support.
 * **Phase 3:** Node Healing automated recovery patterns for decentralized failover and early sensor degradation detection.
 * **Phase 4:** GAN-based texture refinement for hyper-realistic industrial materials and photorealistic dataset generation.
 
----
+## 🌍 Languages
+
+This README and the documents of the repository exist in eight languages: English, Spanish, German, French, Italian, Japanese, Chinese and Portuguese (Portugal). They are written together and checked in the CI so that the eight files have the same sections and the same links. This repository has no screen or message catalogue of its own, so there are no interface strings to translate.
 
 ## 🔗 Related Projects
 
@@ -281,21 +323,26 @@ This project is part of the HYDRA-UMC robotics ecosystem by the same author (Jua
 - **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — maintenance-incident coordinator: a low-privilege edge role collects a sanitized inventory/health snapshot, a control-plane role renders it read-only and asks an AI provider to suggest a diagnosis - never applies a patch or deploys anything.
 - **[HYDRA-UMC-DEV-SERVER](https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER)** — reproducible development host (Raspberry Pi 5 / CM5) that stores the ecosystem's source and runs bounded build/test tasks under a durable queue; a dedicated dev role, explicitly not an operational CM5.
 
+## 📚 Documentation
 
----
+Where to read more:
 
-## 📚 Documentation & Community
+* [Security baseline of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Threat model of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Changelog of this repository](CHANGELOG.md)
+* [License of this repository](LICENSE.md)
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — tech stack and coding guidelines for a pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — the standards of behavior expected in this community.
-- **[SECURITY.md](SECURITY.md)** — how to report a vulnerability, and this project's own real security focus areas.
-- **[SUPPORT.md](SUPPORT.md)** — where to ask questions and report bugs.
-- **[LICENSE.md](LICENSE.md)** — this project's own license.
+## 🤝 Contributing & Community
+
+* Before a pull request run `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (or `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`): it must print `CI_VALIDATION=PASS`. Do not run `build.sh` or `build.bat` for this check; building is not a check.
+* The eight READMEs are written from one source in HYDRA-UMC-DOCS; do not edit them by hand. Change the source and write them again with `tools/make_readmes.py`.
+* Do not state in a README what has not run: say "simulated" or "not tried on hardware" where that is the truth.
+* See [CONTRIBUTING.md](CONTRIBUTING.md), the [code of conduct](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) and [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTHOR
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENSE
-GPL-3.0 - See LICENSE for details.
+
+GPL-3.0-or-later - [LICENSE](LICENSE).

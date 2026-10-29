@@ -1,0 +1,152 @@
+{
+  "repo": "HYDRA-UMC-SYNTHETIC-DATA-GEN",
+  "ecosystem": "hydra",
+  "tagline": "Scenes, images and labels come from the same coordinates, and the finished folder is checked against its own manifest.",
+  "description": "HYDRA-UMC-SYNTHETIC-DATA-GEN places random components in a scene, paints a BMP, exports YOLO or COCO labels from the same coordinates, validates the result and writes a manifest that a later verification reads back.",
+  "columns": [
+    "WHO CALLS IT",
+    "THIS REPOSITORY",
+    "WHO USES THE DATASET"
+  ],
+  "nodes": [
+    {
+      "id": "cli",
+      "column": 0,
+      "level": "tested",
+      "title": "CLI generate",
+      "lines": [
+        "--out, --count, --seed,",
+        "--format yolo|coco|both"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/main.py"
+      ]
+    },
+    {
+      "id": "trn",
+      "column": 2,
+      "level": "untested",
+      "title": "Vision training",
+      "lines": [
+        "trains detectors on",
+        "the dataset; not run here"
+      ]
+    },
+    {
+      "id": "twn",
+      "column": 2,
+      "level": "untested",
+      "title": "TWIN renderer",
+      "lines": [
+        "photorealistic scenes;",
+        "planned"
+      ]
+    },
+    {
+      "id": "sce",
+      "column": 1,
+      "level": "tested",
+      "title": "scene.py",
+      "lines": [
+        "random 2D components",
+        "and defects, seeded"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/scene.py"
+      ]
+    },
+    {
+      "id": "ren",
+      "column": 1,
+      "level": "tested",
+      "title": "render.py",
+      "lines": [
+        "BMP images, standard",
+        "library only"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/render.py"
+      ]
+    },
+    {
+      "id": "val",
+      "column": 1,
+      "level": "tested",
+      "title": "validate.py",
+      "lines": [
+        "scene rules, corrupt BMP,",
+        "label distribution"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/validate.py"
+      ]
+    },
+    {
+      "id": "exp",
+      "column": 1,
+      "level": "tested",
+      "title": "export.py",
+      "lines": [
+        "YOLO and COCO labels",
+        "from the same coordinates"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/export.py"
+      ]
+    },
+    {
+      "id": "man",
+      "column": 1,
+      "level": "tested",
+      "title": "manifest.py + verify.py",
+      "lines": [
+        "manifest.json, and the",
+        "folder read back against it"
+      ],
+      "code": [
+        "src/hydra_umc_synthetic_data_gen/manifest.py",
+        "src/hydra_umc_synthetic_data_gen/verify.py"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "cli",
+      "to": "sce",
+      "level": "tested"
+    },
+    {
+      "from": "sce",
+      "to": "ren",
+      "level": "tested"
+    },
+    {
+      "from": "ren",
+      "to": "exp",
+      "level": "tested"
+    },
+    {
+      "from": "exp",
+      "to": "val",
+      "level": "tested"
+    },
+    {
+      "from": "val",
+      "to": "man",
+      "level": "tested"
+    },
+    {
+      "from": "man",
+      "to": "trn",
+      "level": "untested",
+      "label": "dataset folder"
+    },
+    {
+      "from": "twn",
+      "to": "sce",
+      "level": "untested",
+      "label": "planned"
+    }
+  ],
+  "footer": "Tried on a computer; the training that would use the dataset was not run."
+}

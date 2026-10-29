@@ -1,26 +1,33 @@
+<!-- =============================================================================
+HYDRA-UMC-SYNTHETIC-DATA-GEN - Procedural training datasets with exact labels
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-SYNTHETIC-DATA-GEN banner" width="100%">
 </p>
 
-# 🎲 HYDRA-UMC-SYNTHETIC-DATA-GEN
+# 📸 HYDRA-UMC-SYNTHETIC-DATA-GEN
 
 <p align="center"><a href="README.md">🇺🇸 English</a> | 🇪🇸 <b>Español</b> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 📸 Generador de Datasets Procedurales para Entrenamiento del Nodo Vision AI
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
-  <img src="https://img.shields.io/badge/Formato-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
-  <img src="https://img.shields.io/badge/Target-Nodo%20Vision%20AI-green.svg" alt="Target">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
+  <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
+  <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
+  <img src="https://img.shields.io/badge/Tests-82%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
-
-**Comprobación de honestidad - qué funciona realmente hoy:** la generación procedural de escenas 2D con colocación/tamaño/color determinista por semilla (`scene.py`), el rasterizado real BMP de 24 bits solo con la librería estándar - rectángulos planos, no renderizado fotorrealista (`render.py`), la exportación real de anotaciones YOLO y COCO perfecta a nivel de píxel - las bounding boxes salen directamente de las mismas coordenadas que colocó la escena y pintó el renderizador, así que no hay ningún modelo de detección de por medio que pueda ser impreciso (`export.py`), la superposición real de defectos rectangulares aleatorios, y un `manifest.json` real más validación real tras la generación (límites de escena, integridad BMP, sanidad de distribución de etiquetas) son todos reales y están testeados (82 tests, `pytest`). Lo que NO es real: el renderizado 3D fotorrealista, las máscaras de segmentación, los puntos clave, las vistas multi-cámara y la exportación a TFRecord - todo esto necesita el motor real de física/renderizado de HYDRA-UMC-TWIN, que todavía no existe (ese proyecto sigue siendo scaffolding), o (TFRecord) una dependencia real de TensorFlow que esta v0 deliberadamente no asume. Ver `CHANGELOG.md` para lo que se ha entregado exactamente hasta ahora, y el ROADMAP más abajo para lo que queda abierto.
-
-**Etiquetas, clases y particiones:** los ids de clase son fijos (`bolt`, `bracket`, `gear`, `connector`, `defect` = 0 a 4, también escritos en `classes.txt` y en el manifiesto) sea cual sea el contenido de una ejecución, de modo que los datasets se pueden fusionar y los modelos registrarse con el mismo orden. Un objeto solo se etiqueta mientras al menos el 30 % de él es visible tras taparlo los componentes pintados después, y un arañazo se encuadra por los píxeles que realmente pinta, así que las cajas siguen de cerca la imagen pero no se garantiza que sean exactas. La semilla de cada escena es un hash de la semilla base y su índice, así que ejecuciones de entrenamiento y validación con `--seed` distintos no comparten escenas; sin `--seed` se sortea una y se guarda en el manifiesto. `generate` rechaza una carpeta `--out` que ya contiene un dataset, para que los ficheros antiguos no se mezclen con los nuevos. Aún no hay opción de partición entrenamiento/validación/prueba: genera cada partición en su propia carpeta con su propia semilla.
 
 ---
 
 > **Estado de seguridad física y de ciberseguridad:** este ecosistema no es un sistema de seguridad certificado. Todavía no existe una ruta de E-STOP por hardware, ni límites ni enclavamientos aplicados por el firmware, ni un comando de movimiento verificado; las imágenes de firmware se comprueban con CRC32 y un HMAC-SHA256 de clave compartida, no con una firma asimétrica; TLS y TLS mutuo son opcionales y están desactivados por defecto; aún no se ha poblado ni probado ninguna placa propia. Lee la [línea base de seguridad](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) y el [modelo de amenazas](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) antes de fiarte de cualquier afirmación de aquí para la seguridad de una persona.
+
+---
 
 ## 📋 De un vistazo
 
@@ -28,10 +35,12 @@
 |---|---|
 | Versión | `0.1.1` |
 | Madurez | Establecido |
-| Tests | 58 (`pytest`) |
+| Tests | 82 (`python -m pytest -q tests`) |
 | Tecnología | Python / procedural scene generation / YOLO/COCO annotation export |
 | Destino | El PC de quien lo usa |
 | En hardware real | No aplica: nada de esto se ejecuta en hardware |
+
+**Ir a:** [Resumen](#-resumen) · [Arquitectura](#-arquitectura) · [Inicio rápido](#-inicio-rápido) · [Pruebas](#-pruebas) · [Estructura del repositorio](#-estructura-del-repositorio) · [Proyectos relacionados](#-proyectos-relacionados)
 
 ## 🚦 Estado del proyecto
 
@@ -42,11 +51,11 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Área | Estado | Qué significa aquí |
 |---|---|---|
 | Software | 🟢 | Completo para su propósito y estable; la comprobación de honestidad de arriba lista los límites conocidos |
-| Pruebas | 🟢 | 58 pruebas automáticas, ejecutadas en cada cambio |
+| Pruebas | 🟢 | 82 pruebas automáticas, ejecutadas en cada cambio |
 | Hardware real | 🟢 | No aplica: nada de esto se ejecuta en hardware |
 | Documentación | 🟢 | README en ocho idiomas, comprobado contra el manifiesto en cada cambio |
 
-## 1. 🛠️ VISIÓN GENERAL TÉCNICA
+## 🎯 Resumen
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** es la fábrica de datos para el Nodo Vision AI. Aprovecha los motores de física y renderizado del Digital Twin para generar proceduralmente miles de imágenes etiquetadas para el entrenamiento de redes neuronales.
 
@@ -59,9 +68,18 @@ Resuelve el problema del "arranque en frío" para nuevos componentes industriale
 * 🛠️ **Inyección de Defectos (v0):** Superposición rectangular real y aleatoria por componente, con probabilidad configurable. *(implementado como una superposición real simple - formas reales de arañazo/pieza faltante/puente de soldadura están planeadas)*
 * 📋 **Manifiesto de Dataset y Validación (v0):** Cada ejecución de `generate` escribe un `manifest.json` real (semilla reproducible, parámetros de generación y un checksum sha256 real por imagen) y ejecuta una validación real posterior a la generación - límites de escena, integridad BMP contra el layout de archivo real conocido, y sanidad de distribución de etiquetas - saliendo con código distinto de cero si encuentra algún problema real.
 
----
+## 🧩 Papel en HYDRA-UMC
 
-## 2. 🔄 PIPELINE DE GENERACIÓN
+**HYDRA-UMC-SYNTHETIC-DATA-GEN** escribe pequeños conjuntos de entrenamiento para los nodos de visión: escenas aleatorias de componentes, con las cajas delimitadoras tomadas de las mismas coordenadas que las dibujaron, exportadas como YOLO o COCO junto con un manifiesto de cómo se hizo el conjunto. Hoy las escenas son formas 2D planas; el renderizado con el Digital Twin está previsto.
+
+## 🏛️ Arquitectura
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-SYNTHETIC-DATA-GEN architecture" width="100%">
+</p>
+
+<details>
+<summary>Versión en texto del diagrama (Mermaid)</summary>
 
 ```mermaid
 flowchart LR
@@ -72,9 +90,9 @@ flowchart LR
     DATASET --> TRAIN["Entrenamiento del Nodo Vision"]
 ```
 
----
+</details>
 
-## 3. 🧱 ARQUITECTURA Y DECISIONES DE DISEÑO
+### ARQUITECTURA Y DECISIONES DE DISEÑO
 
 * **Por qué este generador no tiene carpetas `hardware/`/`firmware/`/`os/`.** Software puro - renderiza escenas a través del propio motor de HYDRA-UMC-TWIN en vez de poseer hardware propio.
 * **Por qué es hermano, no un submódulo, de HYDRA-UMC-TWIN.** La generación de datasets es una carga de trabajo por lotes, sin conexión (potencialmente horas de renderizado) fundamentalmente distinta del propio bucle en tiempo real del gemelo - mantenerla separada significa que una exportación larga nunca compite con la simulación en tiempo real por la CPU/GPU del mismo proceso.
@@ -85,40 +103,23 @@ flowchart LR
 * **Por qué la validación reutiliza la propia fórmula de tamaño de fila de `render.py` en vez de un segundo parser independiente.** `validate_bmp_integrity()` importa `_row_size()` de `render.py` directamente en vez de re-derivar el cálculo de relleno de fila BMP - una única fuente de verdad para el layout exacto de bytes evita que un futuro cambio real en el escritor se desincronice silenciosamente del validador.
 * **Por qué "reproducible" es un campo del manifiesto y no solo una propiedad implícita de `--seed`.** `--seed` ya hacía la generación determinista antes de este cambio, pero nada registraba si un dataset concreto en disco realmente usó una semilla - un consumidor no tenía forma de distinguir una ejecución reproducible de una aleatoria después del hecho. El campo `reproducible` de `manifest.json` más un sha256 real por imagen hace esa afirmación verificable.
 
----
+## 🚀 Inicio rápido
 
-## 📂 ESTRUCTURA DE DIRECTORIOS
+Requiere Python 3.10 o superior.
 
-Generador de datasets puramente software, sin diseño de hardware propio -
-por eso este proyecto no lleva carpetas `hardware/`, `firmware/` ni `os/`,
-conforme a la política de estructura del repositorio.
-
-```text
-HYDRA-UMC-SYNTHETIC-DATA-GEN/
-├── src/hydra_umc_synthetic_data_gen/
-│   ├── __init__.py            # Versión del paquete
-│   ├── scene.py          # Generación real de escenas/componentes 2D procedurales
-│   ├── render.py          # Rasterización real de BMP, solo stdlib
-│   ├── export.py           # Exportación real de anotaciones YOLO/COCO
-│   ├── manifest.py           # manifest.json real del dataset (semilla, checksums)
-│   ├── validate.py           # Validación real de límites/integridad BMP/distribución
-│   ├── main.py               # Punto de entrada + subcomando real `generate`
-│   └── verify.py             # Comprueba una carpeta de dataset terminada contra su propio manifiesto y contra sí misma (sumas de control, etiquetas YOLO, anotaciones COCO)
-├── tests/               # Tests reales: generación, renderizado, exportación, CLI end-to-end
-├── docs/                # Documentación y guías procedurales
-├── build/               # Salida de build (el .venv local también vive en la raíz del repo)
-├── images/              # Medios y diagramas
-├── tools/               # ci_validate.py - validación de manifest/CHANGELOG/docs usada por la CI
-├── pyproject.toml       # Metadatos del paquete, dependencias, version cuentakilometros
-├── bump_version.py      # Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)
-├── bump_manifest_version.py # Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)
-├── build.sh / build.bat # venv + instalación editable (con extras de dev) + tests reales + compile-check
-└── run.sh / run.bat     # Ejecuta el entry point desde el venv local (reenvia argumentos, ej. `generate`)
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh generate --out ./out --count 10 --seed 42
+./run.sh generate --out ./out --format yolo --defect-rate 0.3
 ```
 
----
+## 🧪 Pruebas
 
-## 🏗️ BUILD Y RUN
+82 pruebas automáticas se ejecutan con `python -m pytest -q tests`. No necesitan hardware ni nada fuera de esta máquina.
+
+El CI ejecuta `HYDRA_UMC_CI=1 python tools/ci_validate.py`, que comprueba el manifiesto, los documentos, los ocho README y las imágenes.
+
+## 🏗️ Compilación y publicación
 
 Requiere Python 3.10+.
 
@@ -180,17 +181,58 @@ Validation: OK (scene bounds, BMP integrity, label distribution)
 
 Si la validación encuentra un problema real (un componente fuera de rango, un BMP truncado/corrupto, o una tasa de defectos que se desvía mucho de `--defect-rate`), `generate` sale con código `1` y lista cada problema en vez de entregar silenciosamente un dataset defectuoso.
 
----
+## 📂 Estructura del repositorio
 
-## 🚀 HOJA DE RUTA
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-SYNTHETIC-DATA-GEN" width="100%">
+</p>
+
+<details>
+<summary>Versión en texto del árbol</summary>
+
+```text
+HYDRA-UMC-SYNTHETIC-DATA-GEN/
+├── src/hydra_umc_synthetic_data_gen/   código fuente
+│   ├── __init__.py                     Versión del paquete
+│   ├── scene.py                        Generación real de escenas/componentes 2D procedurales
+│   ├── render.py                       Rasterización real de BMP, solo stdlib
+│   ├── export.py                       Exportación real de anotaciones YOLO/COCO
+│   ├── manifest.py                     manifest.json real del dataset (semilla, checksums)
+│   ├── validate.py                     Validación real de límites/integridad BMP/distribución
+│   ├── main.py                         Punto de entrada + subcomando real `generate`
+│   └── verify.py                       Comprueba una carpeta de dataset terminada contra su propio manifiesto y contra sí misma (sumas de control, etiquetas YOLO, anotaciones COCO)
+├── tests/                              Tests reales: generación, renderizado, exportación, CLI end-to-end
+├── docs/                               Documentación y guías procedurales
+├── images/                             Medios y diagramas
+├── tools/                              ci_validate.py - validación de manifest/CHANGELOG/docs usada por la CI
+├── .github/                            flujo de CI y plantillas de incidencias
+├── pyproject.toml                      Metadatos del paquete, dependencias, version cuentakilometros
+├── bump_version.py                     Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)
+├── bump_manifest_version.py            Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)
+├── build.sh / build.bat                venv + instalación editable (con extras de dev) + tests reales + compile-check
+├── run.sh / run.bat                    Ejecuta el entry point desde el venv local (reenvia argumentos, ej. `generate`)
+├── CHANGELOG.md                        qué cambió en cada versión
+├── build-test.sh                       comprobación de compilación sin cambios
+├── hydra-umc.project.json              manifiesto: versión, madurez, familia
+└── test.sh                             ejecuta las pruebas
+```
+
+</details>
+
+## 🗺️ Hoja de ruta y límites conocidos
+
+**Límites conocidos hoy**
+
 * **Fase 1:** Sincronización de Digital Twin con telemetría de hardware en tiempo real y latencia sub-10ms.
 * **Fase 2:** Integración de Physics Replica con simuladores de grado industrial (Isaac Sim) y soporte para cuerpos deformables.
 * **Fase 3:** Patrones de recuperación automatizados de Node Healing para failover descentralizado y detección temprana de degradación de sensores.
 * **Fase 4:** Refinamiento de texturas basado en GAN para materiales industriales hiperrealistas y generación de datasets fotorrealistas.
 
----
+## 🌍 Idiomas
 
-## 🔗 Proyectos Relacionados
+Este README y los documentos del repositorio existen en ocho idiomas: inglés, español, alemán, francés, italiano, japonés, chino y portugués (Portugal). Se escriben a la vez y el CI comprueba que los ocho ficheros tengan las mismas secciones y los mismos enlaces. Este repositorio no tiene pantalla ni catálogo de mensajes propios, así que no hay cadenas de interfaz que traducir.
+
+## 🔗 Proyectos relacionados
 
 Este proyecto es parte del ecosistema de robótica HYDRA-UMC del mismo autor (JuanenRac / Electro Hobby 3D). Vale la pena conocerlo, ya que una petición podría en realidad ser sobre alguno de estos en vez de sobre este repositorio.
 
@@ -281,21 +323,26 @@ Este proyecto es parte del ecosistema de robótica HYDRA-UMC del mismo autor (Ju
 - **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — coordinador de incidencias de mantenimiento: un rol edge de bajo privilegio recopila un snapshot de inventario/salud saneado, un rol control-plane lo renderiza de solo lectura y pide a un proveedor de IA que sugiera un diagnóstico - nunca aplica un parche ni despliega nada.
 - **[HYDRA-UMC-DEV-SERVER](https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER)** — host de desarrollo reproducible (Raspberry Pi 5 / CM5) que almacena el código del ecosistema y ejecuta tareas acotadas de compilación/pruebas bajo una cola duradera; un rol de desarrollo dedicado, explícitamente distinto de un CM5 operativo.
 
+## 📚 Documentación
 
----
+Dónde leer más:
 
-## 📚 Documentación y Comunidad
+* [Base de seguridad del ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Modelo de amenazas del ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Historial de cambios de este repositorio](CHANGELOG.md)
+* [Licencia de este repositorio](LICENSE.md)
 
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — stack tecnológico y pautas de codificación para un pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — los estándares de comportamiento esperados en esta comunidad.
-- **[SECURITY.md](SECURITY.md)** — cómo reportar una vulnerabilidad, y las áreas reales de enfoque en seguridad de este proyecto.
-- **[SUPPORT.md](SUPPORT.md)** — dónde hacer preguntas y reportar errores.
-- **[LICENSE.md](LICENSE.md)** — la licencia propia de este proyecto.
+## 🤝 Contribuir y comunidad
+
+* Antes de un pull request ejecuta `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (o `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`): debe imprimir `CI_VALIDATION=PASS`. No ejecutes `build.sh` ni `build.bat` para esta comprobación; compilar no es comprobar.
+* Los ocho README se escriben desde una sola fuente en HYDRA-UMC-DOCS; no los edites a mano. Cambia la fuente y vuelve a escribirlos con `tools/make_readmes.py`.
+* No afirmes en un README lo que no se ha ejecutado: di «simulado» o «sin probar en hardware» cuando esa sea la verdad.
+* Mira [CONTRIBUTING.md](CONTRIBUTING.md), el [código de conducta](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) y [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTOR
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENCIA
-GPL-3.0 - Ver archivo LICENSE para más detalles.
+
+GPL-3.0-or-later - [LICENSE](LICENSE).
