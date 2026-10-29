@@ -135,7 +135,7 @@ build.bat
 run.bat
 ```
 
-O `build.sh`/`build.bat` sobe a versão do `pyproject.toml` deste projeto segundo a regra "conta-quilómetros" do ecossistema (PATCH+1, transitando para o MINOR depois de 9) antes de cada compilação real, executa a suite de testes real (`pytest tests/`) e depois verifica a compilação do código-fonte com `python -m compileall`.
+O `build.sh`/`build.bat` nunca alteram a versão (só `python tools/hydra_project_tool.py bump` a sobe), verificam a compilação do código-fonte com `python -m compileall` e depois executam a suite de testes real (`pytest tests/`).
 
 O subcomando real `generate` escreve um conjunto de dados real em disco:
 

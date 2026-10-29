@@ -136,7 +136,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` nunca cambian la versión (solo `python tools/hydra_project_tool.py bump` la sube), corren la suite de tests real (`pytest tests/`), y luego hacen compile-check del código fuente con `python -m compileall`.
+`build.sh`/`build.bat` nunca cambian la versión (solo `python tools/hydra_project_tool.py bump` la sube), hacen compile-check del código fuente con `python -m compileall` y luego corren la suite de tests real (`pytest tests/`).
 
 El subcomando real `generate` escribe un dataset real en disco:
 

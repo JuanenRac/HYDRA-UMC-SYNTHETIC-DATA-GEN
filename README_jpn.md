@@ -147,8 +147,8 @@ run.bat
 ```
 
 `build.sh`/`build.bat` はバージョンを変更せず（上げるのは `python tools/hydra_project_tool.py bump` だけです）、
-実際のテストスイートを実行し（`pytest tests/`）、その後
-`python -m compileall` でソースをコンパイルチェックします。
+`python -m compileall` でソースをコンパイルチェックし、その後
+実際のテストスイートを実行します（`pytest tests/`）。
 
 実際の `generate` サブコマンドは、実際のデータセットをディスクに
 書き込みます：

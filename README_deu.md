@@ -136,7 +136,7 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` ändern die Version nie (nur `python tools/hydra_project_tool.py bump` erhöht sie), führen die echte Testsuite aus (`pytest tests/`), und führen anschließend einen Compile-Check des Quellcodes mit `python -m compileall` durch.
+`build.sh`/`build.bat` ändern die Version nie (nur `python tools/hydra_project_tool.py bump` erhöht sie), führen einen Compile-Check des Quellcodes mit `python -m compileall` durch und anschließend die echte Testsuite aus (`pytest tests/`).
 
 Das echte `generate`-Subcommand schreibt einen echten Datensatz auf die Festplatte:
 

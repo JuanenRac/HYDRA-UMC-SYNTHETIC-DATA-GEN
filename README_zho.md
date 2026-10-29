@@ -140,8 +140,8 @@ build.bat
 run.bat
 ```
 
-`build.sh`/`build.bat` 不会更改版本号（只有 `python tools/hydra_project_tool.py bump` 才会提升），运行真实测试套件（`pytest tests/`），然后使用
-`python -m compileall` 对源代码进行编译检查。
+`build.sh`/`build.bat` 不会更改版本号（只有 `python tools/hydra_project_tool.py bump` 才会提升），使用 `python -m compileall` 对源代码进行编译检查，然后
+运行真实测试套件（`pytest tests/`）。
 
 真实的 `generate` 子命令会将真实数据集写入磁盘：
 

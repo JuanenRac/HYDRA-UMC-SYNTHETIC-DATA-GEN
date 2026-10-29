@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- The README in the eight languages gives the real order of the build scripts (compile-check, then the test suite) and, in Portuguese, no longer says that the build raises the version.
+
 ## [0.1.1] - `verify --out DIR`, and `generate` runs it on its own output and the manifest records the class list and its hash
 
 - **`verify --out DIR`, and `generate` runs it on its own output**: the folder is read back and checked against its manifest and against itself: every image against the sha256 of the manifest, the YOLO labels (five fields, a class id that exists, every value inside [0, 1], the box inside the image, as many lines as components), the COCO file (unique image, annotation and category ids, no dangling references, boxes inside the image, `area = width x height`, as many annotations as components), the labels per class, `classes.txt` against the class list of the manifest, and files that belong to no scene. A manifest from an older version is checked as far as it allows.
