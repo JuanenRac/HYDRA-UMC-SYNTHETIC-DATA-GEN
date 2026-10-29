@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
 - The README in the eight languages gives the real order of the build scripts (compile-check, then the test suite) and, in Portuguese, no longer says that the build raises the version.
 
 ## [0.1.1] - `verify --out DIR`, and `generate` runs it on its own output and the manifest records the class list and its hash
