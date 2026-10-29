@@ -33,6 +33,7 @@ from .export import Dataset, export_coco, export_yolo
 from .manifest import build_manifest, write_manifest
 from .render import render_bmp
 from .scene import FIXED_CLASSES, generate_scene
+from .split import SPLIT_FILES, assign_splits, parse_split, write_splits
 from .validate import validate_dataset
 from .verify import verify_output
 
@@ -105,6 +106,15 @@ def _run_generate(args: argparse.Namespace) -> int:
         errors.append(f"--components must be in 1..{MAX_COMPONENTS}")
     if not math.isfinite(args.defect_rate) or not 0.0 <= args.defect_rate <= 1.0:
         errors.append("--defect-rate must be a finite value in 0.0..1.0")
+    fractions = None
+    if args.split is not None:
+        try:
+            fractions = parse_split(args.split)
+        except ValueError as error:
+            errors.append(str(error))
+        else:
+            if args.format == "coco":
+                errors.append("--split writes YOLO lists; use --format yolo or both")
     if not errors:
         bytes_per_image = 54 + ((3 * args.width + 3) & ~3) * args.height  # BMP header + 4-byte-aligned rows
         total_bytes = bytes_per_image * args.count
@@ -120,7 +130,7 @@ def _run_generate(args: argparse.Namespace) -> int:
 
     out_dir = args.out
     images_dir = out_dir / "images"
-    leftovers = [name for name in ("images", "labels", "annotations.json", "classes.txt", "manifest.json") if (out_dir / name).exists()]
+    leftovers = [name for name in ("images", "labels", "annotations.json", "classes.txt", "manifest.json", *SPLIT_FILES) if (out_dir / name).exists()]
     if leftovers:
         # Generating over an old dataset would leave its files next to the new
         # ones, and a trainer that lists the folder would pick up both.
@@ -169,6 +179,10 @@ def _run_generate(args: argparse.Namespace) -> int:
         issues=issues,
     )
     write_manifest(manifest, out_dir / "manifest.json")
+    if fractions is not None:
+        parts = assign_splits(args.count, base_seed, fractions)
+        write_splits(out_dir, [name for name, _ in dataset.scenes], parts, list(manifest.classes))
+        print("Split: " + ", ".join(f"{name}={len(idx)}" for name, idx in parts.items()))
 
     total_components = sum(len(scene.components) for _, scene in dataset.scenes)
     print(f"Generated {args.count} scene(s) -> {images_dir}")
@@ -226,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument(
         "--jobs", type=int, default=1,
         help=f"Processes that render scenes (default: 1, up to {MAX_JOBS}). The dataset is the same whatever the number.",
+    )
+
+    generate_parser.add_argument(
+        "--split", default=None, metavar="train=A,val=B,test=C",
+        help="Also write train.txt/val.txt/test.txt, data.yaml and splits.json (fractions adding up to 1). The assignment "
+        "depends only on the seed and the scene index.",
     )
 
     verify_parser = subparsers.add_parser(

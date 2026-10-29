@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 from .manifest import classes_hash
+from .split import check_splits
 from .validate import ValidationIssue
 
 _SLACK = 1e-6  # YOLO coordinates are written with six decimals
@@ -178,4 +179,6 @@ def verify_output(out_dir: Path) -> list[ValidationIssue]:
         stems = {Path(str(scene.get("image"))).stem for scene in scenes if isinstance(scene, dict)}
         for extra in sorted(p.name for p in labels_dir.glob("*.txt") if p.stem not in stems):
             issues.append(_issue("unexpected_file", f"labels/{extra} belongs to no scene of the manifest"))
+    for problem in check_splits(out_dir, {str(name) for name in listed}):
+        issues.append(_issue("split_mismatch", problem))
     return issues

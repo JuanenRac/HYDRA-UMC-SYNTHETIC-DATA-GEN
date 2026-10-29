@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **`generate --split train=0.8,val=0.1,test=0.1`:** also writes `train.txt`, `val.txt` and `test.txt` (image paths relative to the dataset), a `data.yaml` for YOLO trainers (class names in the fixed order) and `splits.json`. The assignment depends only on the seed and the scene index, each scene is in exactly one part, and `verify` checks it. `images/` and `labels/` stay flat. Without `--split` nothing changes.
+
 - **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
 
 - **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
