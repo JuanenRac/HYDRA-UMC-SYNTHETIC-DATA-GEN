@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.2] - PNG images, a train, validation and test split, the real order of the build scripts and the universal README
+
 - **PNG images (`generate --image-format png`).** The scenes can be written as 8-bit RGB PNG files (compressed, stdlib only) instead of BMP; the pixels are the ones the BMP holds, the validation checks the signature, the chunk checksums, the size and the pixel stream of each file, and `verify` reads such a dataset back like any other. The default stays BMP, so existing datasets and commands are unchanged.
 
 - **`generate --split train=0.8,val=0.1,test=0.1`:** also writes `train.txt`, `val.txt` and `test.txt` (image paths relative to the dataset), a `data.yaml` for YOLO trainers (class names in the fixed order) and `splits.json`. The assignment depends only on the seed and the scene index, each scene is in exactly one part, and `verify` checks it. `images/` and `labels/` stay flat. Without `--split` nothing changes.
