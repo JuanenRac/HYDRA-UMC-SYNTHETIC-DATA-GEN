@@ -67,6 +67,7 @@ Il résout le problème du « démarrage à froid » pour les nouveaux composant
 * 🏷️ **Étiquetage automatique (v0) :** Export réel et parfait au pixel près en YOLO et COCO. *(implémenté pour YOLO/COCO ; l'export TFRecord est prévu)*
 * 🛠️ **Injection de défauts (v0) :** Superposition rectangulaire réelle et aléatoire par composant, avec probabilité configurable. *(implémenté comme une simple superposition réelle - de vraies formes de rayure/pièce manquante/pont de soudure sont prévues)*
 * 📋 **Manifeste de jeu de données & validation (v0) :** Chaque exécution de `generate` écrit un vrai `manifest.json` (indicateur de graine reproductible, paramètres de génération, et une vraie somme de contrôle sha256 par image) et exécute une vraie validation post-génération - limites de scène, intégrité BMP par rapport à la disposition de fichier réelle connue, et cohérence de la distribution des étiquettes - se terminant avec un code non nul si un vrai problème est trouvé.
+* ✂️ **Répartition entraînement, validation et test :** `generate --split train=0.8,val=0.1,test=0.1` écrit en plus `train.txt`, `val.txt` et `test.txt`, un `data.yaml` pour les entraîneurs YOLO et `splits.json`. La part d'une scène ne dépend que de la graine et de l'indice de la scène, chaque scène est dans une seule part, et `verify` le contrôle. Sans `--split`, rien ne change.
 
 ## 🧩 Rôle dans HYDRA-UMC
 

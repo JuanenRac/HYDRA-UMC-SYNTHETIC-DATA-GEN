@@ -67,6 +67,7 @@ It solves the "cold start" problem for new industrial components or rare defect 
 * 🏷️ **Automatic Labeling (v0):** Real, pixel-perfect YOLO and COCO annotation export. *(implemented for YOLO/COCO; TFRecord export is planned)*
 * 🛠️ **Defect Injection (v0):** Real, randomized defect overlay per component, at a configurable probability - either a solid rectangle, or a real Bresenham-line scratch with randomized per-point width/opacity. *(implemented - missing-part/solder-bridge shapes are still planned)*
 * 📋 **Dataset Manifest & Validation (v0):** Every `generate` run writes a real `manifest.json` (reproducible-seed flag, generation parameters, and a per-image sha256 checksum) and runs real post-generation validation - scene-bounds checking, BMP-integrity checking against the exact known-good file layout, and label-distribution sanity - exiting non-zero if any real issue is found.
+* ✂️ **Train, validation and test split:** `generate --split train=0.8,val=0.1,test=0.1` also writes `train.txt`, `val.txt` and `test.txt`, a `data.yaml` for YOLO trainers and `splits.json`. The part of a scene depends only on the seed and the scene index, each scene is in exactly one part, and `verify` checks it. Without `--split` nothing changes.
 
 ## 🧩 Role in HYDRA-UMC
 

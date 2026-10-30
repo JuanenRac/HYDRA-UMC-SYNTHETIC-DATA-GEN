@@ -67,6 +67,7 @@ Resuelve el problema del "arranque en frío" para nuevos componentes industriale
 * 🏷️ **Etiquetado Automático (v0):** Exportación real y perfecta a nivel de píxel en YOLO y COCO. *(implementado para YOLO/COCO; la exportación TFRecord está planeada)*
 * 🛠️ **Inyección de Defectos (v0):** Superposición rectangular real y aleatoria por componente, con probabilidad configurable. *(implementado como una superposición real simple - formas reales de arañazo/pieza faltante/puente de soldadura están planeadas)*
 * 📋 **Manifiesto de Dataset y Validación (v0):** Cada ejecución de `generate` escribe un `manifest.json` real (semilla reproducible, parámetros de generación y un checksum sha256 real por imagen) y ejecuta una validación real posterior a la generación - límites de escena, integridad BMP contra el layout de archivo real conocido, y sanidad de distribución de etiquetas - saliendo con código distinto de cero si encuentra algún problema real.
+* ✂️ **Reparto en entrenamiento, validación y prueba:** `generate --split train=0.8,val=0.1,test=0.1` escribe además `train.txt`, `val.txt` y `test.txt`, un `data.yaml` para entrenadores YOLO y `splits.json`. La parte de una escena depende solo de la semilla y del índice de la escena, cada escena está en una sola parte y `verify` lo comprueba. Sin `--split` nada cambia.
 
 ## 🧩 Papel en HYDRA-UMC
 

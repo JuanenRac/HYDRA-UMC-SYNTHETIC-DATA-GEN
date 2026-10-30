@@ -67,6 +67,7 @@ Er löst das "Kaltstart"-Problem für neue industrielle Komponenten oder seltene
 * 🏷️ **Automatische Beschriftung (v0):** Echter, pixelgenauer Export in YOLO und COCO. *(implementiert für YOLO/COCO; TFRecord-Export ist geplant)*
 * 🛠️ **Defekt-Injektion (v0):** Echte, zufällige rechteckige Überlagerung pro Komponente, mit konfigurierbarer Wahrscheinlichkeit. *(implementiert als einfache echte Überlagerung - echte Kratzer-/Fehlteil-/Lötbrücken-Formen sind geplant)*
 * 📋 **Datensatz-Manifest & Validierung (v0):** Jeder `generate`-Lauf schreibt eine echte `manifest.json` (reproduzierbares-Seed-Flag, Erzeugungsparameter und eine echte sha256-Prüfsumme pro Bild) und führt eine echte Nach-Generierungs-Validierung durch - Szenengrenzen, BMP-Integrität gegen das bekannte reale Dateilayout, und Plausibilität der Label-Verteilung - und beendet sich mit einem Fehlercode ungleich null, falls ein echtes Problem gefunden wird.
+* ✂️ **Aufteilung in Training, Validierung und Test:** `generate --split train=0.8,val=0.1,test=0.1` schreibt zusätzlich `train.txt`, `val.txt` und `test.txt`, eine `data.yaml` für YOLO-Trainer und `splits.json`. Der Teil einer Szene hängt nur vom Seed und vom Szenenindex ab, jede Szene liegt in genau einem Teil, und `verify` prüft das. Ohne `--split` ändert sich nichts.
 
 ## 🧩 Rolle in HYDRA-UMC
 
