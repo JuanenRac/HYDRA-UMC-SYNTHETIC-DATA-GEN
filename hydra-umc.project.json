@@ -12,6 +12,8 @@
   ],
   "deployment_target": "user-pc",
   "maturity": "established",
+  "evidence": "none",
+  "hardware_bound": false,
   "family": "Digital Twin & Simulation",
   "parent": "HYDRA-UMC-TWIN",
   "build": "python tools/build_test.py",
