@@ -224,10 +224,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 
 **Limiti noti oggi**
 
-* **Fase 1:** Sincronizzazione del Digital Twin con telemetria hardware in tempo reale e latenza inferiore a 10 ms.
-* **Fase 2:** Integrazione di Physics Replica con simulatori di livello industriale (Isaac Sim) e supporto per corpi deformabili.
-* **Fase 3:** Modelli di ripristino automatizzati di Node Healing per failover decentralizzato e rilevamento precoce del degrado dei sensori.
-* **Fase 4:** Affinamento delle texture basato su GAN per materiali industriali iper-realistici e generazione di dataset fotorealistici.
+* **Fase 1:** Elenco di classi fisso e suddivisioni riproducibili addestramento/validazione/test (l'opzione `--split` è il primo passo).
+* **Fase 2:** Maschere di segmentazione accanto ai riquadri di delimitazione.
+* **Fase 3:** Annotazioni di punti chiave per i dataset di stima della posa.
+* **Fase 4:** Output PNG e integrazione con il gemello digitale (TWIN) come sorgente di scene.
 
 ## 🌍 Lingue
 

@@ -224,10 +224,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 
 **Limites connues aujourd'hui**
 
-* **Phase 1 :** Synchronisation du jumeau numérique avec la télémétrie matérielle en temps réel et latence inférieure à 10 ms.
-* **Phase 2 :** Intégration de Physics Replica avec des simulateurs de classe industrielle (Isaac Sim) et prise en charge des corps déformables.
-* **Phase 3 :** Modèles de récupération automatisés de Node Healing pour un basculement décentralisé et détection précoce de la dégradation des capteurs.
-* **Phase 4 :** Affinement des textures basé sur les GAN pour des matériaux industriels hyperréalistes et génération de jeux de données photoréalistes.
+* **Phase 1 :** Liste de classes fixe et partitions reproductibles entraînement/validation/test (l'option `--split` est la première étape).
+* **Phase 2 :** Masques de segmentation en plus des boîtes englobantes.
+* **Phase 3 :** Annotations de points clés pour les jeux de données d'estimation de pose.
+* **Phase 4 :** Sortie PNG et intégration avec le jumeau numérique (TWIN) comme source de scènes.
 
 ## 🌍 Langues
 

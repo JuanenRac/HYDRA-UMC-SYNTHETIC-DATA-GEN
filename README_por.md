@@ -224,10 +224,10 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 
 **Limites conhecidos hoje**
 
-* **Fase 1:** sincronização do Gémeo Digital com telemetria de hardware em tempo real e latência abaixo de 10 ms.
-* **Fase 2:** integração da Réplica de Física com simuladores de nível industrial (Isaac Sim) e suporte de corpos deformáveis.
-* **Fase 3:** padrões de recuperação automática do Node Healing para failover descentralizado e deteção precoce da degradação de sensores.
-* **Fase 4:** refinamento de texturas baseado em GAN para materiais industriais hiper-realistas e geração de conjuntos de dados fotorrealistas.
+* **Fase 1:** Lista de classes fixa e divisões reprodutíveis de treino/validação/teste (a opção `--split` é o primeiro passo).
+* **Fase 2:** Máscaras de segmentação a par das caixas delimitadoras.
+* **Fase 3:** Anotações de pontos-chave para conjuntos de dados de estimação de pose.
+* **Fase 4:** Saída em PNG e integração com o gémeo digital (TWIN) como origem das cenas.
 
 ## 🌍 Idiomas
 
