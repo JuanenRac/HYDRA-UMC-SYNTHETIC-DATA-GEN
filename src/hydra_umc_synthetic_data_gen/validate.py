@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import math
 import struct
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 
 from .export import Dataset
-from .render import _row_size
+from .render import PNG_SIGNATURE, _row_size
 from .scene import DEFECT_LABEL, Scene
 
 BMP_HEADER_SIZE = 54  # 14-byte BITMAPFILEHEADER + 40-byte BITMAPINFOHEADER
@@ -49,6 +50,43 @@ def validate_scene_bounds(image_name: str, scene: Scene) -> list[ValidationIssue
                 )
             )
     return issues
+
+
+def validate_png_integrity(image_name: str, path: Path, expected_width: int, expected_height: int) -> list[ValidationIssue]:
+    """The PNG counterpart: signature, the CRC of every chunk, the size in the header and a pixel stream that inflates to
+    exactly one filter byte plus three bytes a pixel for every row."""
+    if not path.exists():
+        return [ValidationIssue("missing_file", f"{image_name}: expected image file not found at {path}")]
+    data = path.read_bytes()
+    bad = lambda why: [ValidationIssue("corrupt_png", f"{image_name}: {why}")]  # noqa: E731
+    if data[:8] != PNG_SIGNATURE:
+        return bad("not a valid PNG (missing signature)")
+    position, width, height, pixels, ended = 8, None, None, bytearray(), False
+    while position + 12 <= len(data):
+        length = struct.unpack(">I", data[position : position + 4])[0]
+        kind = data[position + 4 : position + 8]
+        body = data[position + 8 : position + 8 + length]
+        crc = data[position + 8 + length : position + 12 + length]
+        if len(body) != length or len(crc) != 4 or struct.unpack(">I", crc)[0] != zlib.crc32(kind + body) & 0xFFFFFFFF:
+            return bad(f"chunk {kind!r} is truncated or its checksum is wrong")
+        if kind == b"IHDR" and length == 13:
+            width, height = struct.unpack(">II", body[:8])
+        elif kind == b"IDAT":
+            pixels.extend(body)
+        elif kind == b"IEND":
+            ended = True
+        position += 12 + length
+    if not ended or width is None:
+        return bad("truncated PNG (no header or no end chunk)")
+    if (width, height) != (expected_width, expected_height):
+        return bad(f"PNG header reports {width}x{height}, expected {expected_width}x{expected_height}")
+    try:
+        raw = zlib.decompress(bytes(pixels))
+    except zlib.error:
+        return bad("the pixel data cannot be decompressed")
+    if len(raw) != (1 + 3 * width) * height:
+        return bad(f"pixel data is {len(raw)} bytes, expected {(1 + 3 * width) * height}")
+    return []
 
 
 def validate_bmp_integrity(image_name: str, path: Path, expected_width: int, expected_height: int) -> list[ValidationIssue]:
@@ -140,6 +178,7 @@ def validate_dataset(
     issues: list[ValidationIssue] = []
     for image_name, scene in dataset.scenes:
         issues.extend(validate_scene_bounds(image_name, scene))
-        issues.extend(validate_bmp_integrity(image_name, images_dir / image_name, scene.width, scene.height))
+        check = validate_png_integrity if image_name.endswith(".png") else validate_bmp_integrity
+        issues.extend(check(image_name, images_dir / image_name, scene.width, scene.height))
     issues.extend(validate_label_distribution(dataset, expected_labels, defect_rate))
     return issues

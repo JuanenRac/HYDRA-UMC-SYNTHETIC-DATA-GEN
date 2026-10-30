@@ -31,7 +31,7 @@ from pathlib import Path
 
 from .export import Dataset, export_coco, export_yolo
 from .manifest import build_manifest, write_manifest
-from .render import render_bmp
+from .render import render_bmp, render_png
 from .scene import FIXED_CLASSES, generate_scene
 from .split import SPLIT_FILES, assign_splits, parse_split, write_splits
 from .validate import validate_dataset
@@ -64,9 +64,9 @@ def _scene_seed(base_seed: int, index: int) -> int:
     return int.from_bytes(digest[:8], "big")
 
 
-def _make_scene(task: tuple[int, int, int, int, int, float, str]) -> tuple[str, object]:
+def _make_scene(task: tuple[int, int, int, int, int, float, str, str]) -> tuple[str, object]:
     """Generate and render one scene. Top level so a worker process can run it; the result depends only on the task."""
-    base_seed, index, width, height, components, defect_rate, images_dir = task
+    base_seed, index, width, height, components, defect_rate, images_dir, image_format = task
     scene = generate_scene(
         random.Random(_scene_seed(base_seed, index)),
         width=width,
@@ -74,8 +74,8 @@ def _make_scene(task: tuple[int, int, int, int, int, float, str]) -> tuple[str, 
         num_components=components,
         defect_probability=defect_rate,
     )
-    image_name = f"scene_{index:04d}.bmp"
-    render_bmp(scene, Path(images_dir) / image_name)
+    image_name = f"scene_{index:04d}.{image_format}"
+    (render_png if image_format == "png" else render_bmp)(scene, Path(images_dir) / image_name)
     return image_name, scene
 
 
@@ -116,7 +116,7 @@ def _run_generate(args: argparse.Namespace) -> int:
             if args.format == "coco":
                 errors.append("--split writes YOLO lists; use --format yolo or both")
     if not errors:
-        bytes_per_image = 54 + ((3 * args.width + 3) & ~3) * args.height  # BMP header + 4-byte-aligned rows
+        bytes_per_image = 54 + ((3 * args.width + 3) & ~3) * args.height  # BMP header + 4-byte-aligned rows (the bound for a PNG too)
         total_bytes = bytes_per_image * args.count
         if total_bytes > MAX_DATASET_BYTES:
             errors.append(
@@ -144,7 +144,7 @@ def _run_generate(args: argparse.Namespace) -> int:
     base_seed = args.seed if args.seed is not None else secrets.randbits(31)
 
     tasks = [
-        (base_seed, index, args.width, args.height, args.components, args.defect_rate, str(images_dir))
+        (base_seed, index, args.width, args.height, args.components, args.defect_rate, str(images_dir), args.image_format)
         for index in range(args.count)
     ]
     jobs = min(args.jobs, os.cpu_count() or 1, args.count)
@@ -199,7 +199,7 @@ def _run_generate(args: argparse.Namespace) -> int:
             print(f"  [{issue.kind}] {issue.detail}")
         return 1
 
-    print("Validation: OK (scene bounds, BMP integrity, label distribution, exported files against the manifest)")
+    print("Validation: OK (scene bounds, image integrity, label distribution, exported files against the manifest)")
     return 0
 
 
@@ -236,6 +236,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate_parser.add_argument(
         "--format", choices=("yolo", "coco", "both"), default="both", help="Annotation export format (default: both)."
+    )
+    generate_parser.add_argument(
+        "--image-format", choices=("bmp", "png"), default="bmp",
+        help="Image file format (default: bmp). png is compressed, so the dataset is smaller; the pixels are the same.",
     )
     generate_parser.add_argument(
         "--jobs", type=int, default=1,

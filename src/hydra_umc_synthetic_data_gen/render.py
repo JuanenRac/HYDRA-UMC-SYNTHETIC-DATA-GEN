@@ -13,21 +13,24 @@ photorealistic rendering - see scene.py's own module docstring for why.
 from __future__ import annotations
 
 import struct
+import zlib
 from pathlib import Path
 
 from .scene import Scene
+
+PNG_SIGNATURE = bytes.fromhex("89504e470d0a1a0a")
 
 
 def _row_size(width: int) -> int:
     return (width * 3 + 3) & ~3
 
 
-def render_bmp(scene: Scene, path: Path) -> None:
-    """Render `scene` to a real BMP file at `path`.
+def _paint(scene: Scene) -> list[bytearray]:
+    """The scene as one `bytearray` of BGR bytes per row, top row first.
 
     The image is held as one flat `bytearray` of BGR bytes per row (3 bytes a pixel) and rectangles are painted by
     slice, not pixel by pixel: the old list of lists of tuples cost about 8 bytes of pointer per pixel plus a Python
-    loop over every one, minutes for a 4096x4096 scene. The bytes written are exactly the same."""
+    loop over every one, minutes for a 4096x4096 scene."""
     width, height = scene.width, scene.height
 
     background = bytes((scene.background_color[2], scene.background_color[1], scene.background_color[0]))
@@ -58,7 +61,13 @@ def render_bmp(scene: Scene, path: Path) -> None:
             fill = bytes((comp.color[2], comp.color[1], comp.color[0])) * (x_end - x_start)
             for py in range(y_start, y_end):
                 pixels[py][x_start * 3 : x_end * 3] = fill
+    return pixels
 
+
+def render_bmp(scene: Scene, path: Path) -> None:
+    """Render `scene` to a real BMP file at `path`."""
+    width, height = scene.width, scene.height
+    pixels = _paint(scene)
     row_size = _row_size(width)
     pixel_data_size = row_size * height
     file_size = 14 + 40 + pixel_data_size
@@ -77,6 +86,31 @@ def render_bmp(scene: Scene, path: Path) -> None:
         for y in range(height - 1, -1, -1):
             f.write(pixels[y])
             f.write(padding)
+
+
+def _png_chunk(kind: bytes, data: bytes) -> bytes:
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+
+def render_png(scene: Scene, path: Path) -> None:
+    """Render `scene` to a real 8-bit RGB PNG at `path` (stdlib only: zlib for the pixels, no Pillow).
+
+    The same painting as `render_bmp`, one filter-0 scanline per row; the bytes depend only on the scene."""
+    width, height = scene.width, scene.height
+    raw = bytearray()
+    for row in _paint(scene):
+        rgb = bytearray(len(row))
+        rgb[0::3] = row[2::3]
+        rgb[1::3] = row[1::3]
+        rgb[2::3] = row[0::3]
+        raw.append(0)
+        raw.extend(rgb)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(PNG_SIGNATURE)
+        f.write(_png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)))
+        f.write(_png_chunk(b"IDAT", zlib.compress(bytes(raw), 6)))
+        f.write(_png_chunk(b"IEND", b""))
 
 
 def read_bmp_dimensions(path: Path) -> tuple[int, int]:
