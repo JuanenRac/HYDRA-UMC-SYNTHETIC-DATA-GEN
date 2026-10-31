@@ -39,7 +39,7 @@ def test_the_png_holds_the_same_pixels_the_bmp_is_painted_from(tmp_path: Path) -
     render_png(scene, path)
     width, height, rows = _decode(path)
     assert (width, height) == (40, 30)
-    for painted, stored in zip(_paint(scene), rows):
+    for painted, stored in zip(_paint(scene), rows, strict=False):
         bgr = bytes(painted)
         assert bytes(b for i in range(0, len(bgr), 3) for b in (bgr[i + 2], bgr[i + 1], bgr[i])) == stored
 

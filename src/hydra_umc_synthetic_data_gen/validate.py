@@ -16,7 +16,6 @@ expected size and the actual bytes on disk.
 """
 from __future__ import annotations
 
-import math
 import struct
 import zlib
 from dataclasses import dataclass

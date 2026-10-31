@@ -88,7 +88,7 @@ def test_bresenham_line_connects_start_to_end_with_no_gaps() -> None:
         points = _bresenham_line(x0, y0, x1, y1)
         assert points[0] == (x0, y0)
         assert points[-1] == (x1, y1)
-        for (px0, py0), (px1, py1) in zip(points, points[1:]):
+        for (px0, py0), (px1, py1) in zip(points, points[1:], strict=False):
             assert abs(px1 - px0) <= 1
             assert abs(py1 - py0) <= 1
 

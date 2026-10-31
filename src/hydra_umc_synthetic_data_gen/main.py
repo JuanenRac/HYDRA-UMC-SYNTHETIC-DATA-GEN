@@ -124,8 +124,8 @@ def _run_generate(args: argparse.Namespace) -> int:
                 f"of images, over the {MAX_DATASET_BYTES // 1024**3} GiB limit - lower --count, --width or --height"
             )
     if errors:
-        for error in errors:
-            print(f"error: {error}", file=sys.stderr)
+        for message in errors:
+            print(f"error: {message}", file=sys.stderr)
         return 2
 
     out_dir = args.out
@@ -156,7 +156,7 @@ def _run_generate(args: argparse.Namespace) -> int:
     else:
         scenes = [_make_scene(task) for task in tasks]
 
-    dataset = Dataset(scenes=tuple(scenes))
+    dataset = Dataset(scenes=tuple(scenes))  # type: ignore[arg-type]
 
     if args.format in ("yolo", "both"):
         export_yolo(dataset, out_dir)
