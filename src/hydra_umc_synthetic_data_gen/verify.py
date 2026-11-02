@@ -107,8 +107,27 @@ def _check_coco(path: Path, classes: list[str], issues: list[ValidationIssue]) -
         x, y, w, h = box
         if w <= 0 or h <= 0 or x < 0 or y < 0 or x + w > width or y + h > height:
             issues.append(_issue("coco_out_of_range", f"annotation {identifier}: bbox {box} leaves the {width}x{height} image"))
-        if annotation.get("area") != w * h:
-            issues.append(_issue("bad_coco", f"annotation {identifier}: area is not width x height"))
+        segmentation = annotation.get("segmentation")
+        if segmentation is None:
+            if annotation.get("area") != w * h:
+                issues.append(_issue("bad_coco", f"annotation {identifier}: area is not width x height"))
+            continue
+        # a part painted as a polygon: the polygon stays in the image and the area is the pixels it paints, never more than its box
+        area = annotation.get("area")
+        flat_ok = (
+            isinstance(segmentation, list)
+            and len(segmentation) >= 1
+            and all(
+                isinstance(ring, list) and len(ring) >= 6 and len(ring) % 2 == 0
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in ring)
+                and all(0 <= ring[i] <= width and 0 <= ring[i + 1] <= height for i in range(0, len(ring), 2))
+                for ring in segmentation
+            )
+        )
+        if not flat_ok:
+            issues.append(_issue("bad_coco", f"annotation {identifier}: segmentation is not a list of polygons inside the image"))
+        elif not (isinstance(area, (int, float)) and 0 < area <= w * h):
+            issues.append(_issue("bad_coco", f"annotation {identifier}: area of a polygon is not between 1 and width x height"))
     return counts
 
 

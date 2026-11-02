@@ -18,7 +18,9 @@ a catalogue part is a single rigid piece. A URDF that declares a DOCTYPE or an e
 
 The silhouette of a part is a convex approximation: the part is reduced to the points that stick out furthest in 128 directions (real
 vertices of the file), and the outline of their projection is the convex hull. A part with a hole or a concavity is drawn without it, which
-is a stated limit of this version. Nothing here keeps a path or a name of the machine that made the catalogue: only the labels and the
+is a stated limit unless the catalogue says `"silhouette": "concave"`: an STL part with at most `concave_max_triangles` (default 20000)
+triangles is then painted from above on a 64 x 64 grid and its real outer outline (concavities included, holes inside it not) is used; a URDF part
+or a bigger mesh keeps the convex outline. Nothing here keeps a path or a name of the machine that made the catalogue: only the labels and the
 SHA-256 of the part files reach a dataset.
 """
 from __future__ import annotations
@@ -42,6 +44,8 @@ MAX_PARTS = 200
 SUPPORT_DIRECTIONS = 128
 _LABEL = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 YAW_STEPS = 36
+CONCAVE_MAX_TRIANGLES = 20_000
+CONCAVE_GRID = 64
 
 
 class CatalogError(ValueError):
@@ -128,7 +132,13 @@ def _read_limited(path: Path, label: str) -> bytes:
 
 def parse_stl(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLES) -> list[Vec3]:
     """The distinct vertices of an STL (binary or ASCII)."""
+    return parse_stl_mesh(data, label, max_triangles)[0]
+
+
+def parse_stl_mesh(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLES) -> tuple[list[Vec3], list[tuple[Vec3, Vec3, Vec3]]]:
+    """The distinct vertices and the triangles of an STL (binary or ASCII)."""
     vertices: set[Vec3] = set()
+    mesh: list[tuple[Vec3, Vec3, Vec3]] = []
     if len(data) >= 84:
         triangles = struct.unpack_from("<I", data, 80)[0]
         if len(data) == 84 + 50 * triangles:
@@ -136,12 +146,15 @@ def parse_stl(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLE
                 raise CatalogError(f"{label}: {triangles} triangle(s), the limit is {max_triangles}")
             for i in range(triangles):
                 base = 84 + 50 * i + 12
+                corner: list[Vec3] = []
                 for v in range(3):
                     x, y, z = struct.unpack_from("<3f", data, base + 12 * v)
                     if not all(math.isfinite(c) for c in (x, y, z)):
                         raise CatalogError(f"{label}: a vertex is not a finite number")
                     vertices.add((x, y, z))
-            return list(vertices)
+                    corner.append((x, y, z))
+                mesh.append((corner[0], corner[1], corner[2]))
+            return list(vertices), mesh
     try:
         text = data.decode("utf-8", errors="strict")
     except UnicodeDecodeError as error:
@@ -149,6 +162,7 @@ def parse_stl(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLE
     if "solid" not in text[:200].lower():
         raise CatalogError(f"{label}: neither a binary nor an ASCII STL")
     count = 0
+    pending: list[Vec3] = []
     for line in text.splitlines():
         parts = line.split()
         if len(parts) == 4 and parts[0] == "vertex":
@@ -159,12 +173,16 @@ def parse_stl(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLE
             if not all(math.isfinite(c) for c in vertex):
                 raise CatalogError(f"{label}: a vertex is not a finite number")
             vertices.add(vertex)
+            pending.append(vertex)
+            if len(pending) == 3:
+                mesh.append((pending[0], pending[1], pending[2]))
+                pending = []
             count += 1
             if count > 3 * max_triangles:
                 raise CatalogError(f"{label}: more than {max_triangles} triangles")
     if not vertices:
         raise CatalogError(f"{label}: no vertex found")
-    return list(vertices)
+    return list(vertices), mesh
 
 
 def _rotation_rpy(roll: float, pitch: float, yaw: float) -> list[list[float]]:
@@ -297,6 +315,8 @@ class Part:
     label: str
     points: tuple[Vec3, ...]
     source_sha256: str
+    # the triangles of an STL part (metres), kept only when the catalogue asks for `concave` outlines; empty otherwise
+    triangles: tuple[tuple[Vec3, Vec3, Vec3], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -329,7 +349,7 @@ def load_catalog(path: str | Path) -> Catalog:
         raise CatalogError(f"cannot read the catalogue ({error.__class__.__name__})") from error
     if not isinstance(raw, dict) or not isinstance(raw.get("parts"), list) or not raw["parts"]:
         raise CatalogError("the catalogue must be an object with a non-empty list `parts`")
-    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles"})
+    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles", "silhouette", "concave_max_triangles"})
     if unknown:
         raise CatalogError(f"the catalogue has unknown keys: {', '.join(unknown)}")
     unit_scale = raw.get("unit_scale", 0.001)
@@ -338,6 +358,12 @@ def load_catalog(path: str | Path) -> Catalog:
         raise CatalogError("unit_scale must be a number above 0")
     if isinstance(max_triangles, bool) or not isinstance(max_triangles, int) or not 1 <= max_triangles <= MAX_TRIANGLES:
         raise CatalogError(f"max_triangles must be an integer in 1..{MAX_TRIANGLES}")
+    outline = raw.get("silhouette", "convex")
+    if outline not in ("convex", "concave"):
+        raise CatalogError('silhouette must be "convex" or "concave"')
+    concave_max = raw.get("concave_max_triangles", CONCAVE_MAX_TRIANGLES)
+    if isinstance(concave_max, bool) or not isinstance(concave_max, int) or not 1 <= concave_max <= MAX_TRIANGLES:
+        raise CatalogError(f"concave_max_triangles must be an integer in 1..{MAX_TRIANGLES}")
     if len(raw["parts"]) > MAX_PARTS:
         raise CatalogError(f"the catalogue has more than {MAX_PARTS} parts")
     root_dir = catalog_path.parent
@@ -362,14 +388,140 @@ def load_catalog(path: str | Path) -> Catalog:
             raise CatalogError(f"{where}: {kind} must be a relative path")
         file = resolve_inside(root_dir, root_dir, item[kind], where)
         data = _read_limited(file, where)
-        vertices = parse_stl(data, where, max_triangles) if kind == "stl" else parse_urdf(data, file.parent, root_dir, where, max_triangles)
+        kept: tuple[tuple[Vec3, Vec3, Vec3], ...] = ()
+        if kind == "stl":
+            vertices, mesh = parse_stl_mesh(data, where, max_triangles)
+            # a mesh over the limit keeps its convex outline: the painting of the triangles is plain Python
+            if outline == "concave" and len(mesh) <= concave_max:
+                kept = tuple(tuple((x * scale, y * scale, z * scale) for x, y, z in tri) for tri in mesh)  # type: ignore[misc]
+        else:
+            vertices = parse_urdf(data, file.parent, root_dir, where, max_triangles)
         points = support_points(vertices)
-        parts.append(Part(label, tuple((x * scale, y * scale, z * scale) for x, y, z in points), hashlib.sha256(data).hexdigest()))
+        parts.append(Part(label, tuple((x * scale, y * scale, z * scale) for x, y, z in points), hashlib.sha256(data).hexdigest(), kept))
     return Catalog(tuple(parts), float(unit_scale))
 
 
+def _simplify(points: list[Point], tolerance: float) -> list[Point]:
+    """Douglas-Peucker on a closed loop: split at the point furthest from the first, simplify each half."""
+    if len(points) <= 4:
+        return points
+
+    def dist(p: Point, a: Point, b: Point) -> float:
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return math.hypot(p[0] - a[0], p[1] - a[1])
+        return abs(dx * (a[1] - p[1]) - (a[0] - p[0]) * dy) / length
+
+    def chain(seq: list[Point]) -> list[Point]:
+        if len(seq) < 3:
+            return seq
+        worst, at = 0.0, 0
+        for k in range(1, len(seq) - 1):
+            d = dist(seq[k], seq[0], seq[-1])
+            if d > worst:
+                worst, at = d, k
+        if worst <= tolerance:
+            return [seq[0], seq[-1]]
+        return chain(seq[: at + 1])[:-1] + chain(seq[at:])
+
+    far = max(range(len(points)), key=lambda k: math.hypot(points[k][0] - points[0][0], points[k][1] - points[0][1]))
+    a = points[: far + 1]
+    b = points[far:] + points[:1]
+    return chain(a)[:-1] + chain(b)[:-1]
+
+
+def raster_outline(triangles: Sequence[tuple[Point, Point, Point]], grid: int = CONCAVE_GRID) -> list[Point]:
+    """The outer outline, in a unit box, of the union of 2D `triangles`: they are painted on a grid x grid canvas that spans their box
+    and the boundary of the biggest connected piece is walked and simplified. A hole inside the part is not kept (a stated limit)."""
+    xs = [p[0] for tri in triangles for p in tri]
+    ys = [p[1] for tri in triangles for p in tri]
+    x0, y0 = min(xs), min(ys)
+    w, h = max(xs) - x0, max(ys) - y0
+    if w <= 0 or h <= 0:
+        return []
+    cells: set[tuple[int, int]] = set()
+    for tri in triangles:
+        g = [((p[0] - x0) / w * grid, (p[1] - y0) / h * grid) for p in tri]
+        (ax, ay), (bx, by), (cx, cy) = g
+        area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        lo_x, hi_x = int(min(ax, bx, cx)), min(grid - 1, int(max(ax, bx, cx)))
+        lo_y, hi_y = int(min(ay, by, cy)), min(grid - 1, int(max(ay, by, cy)))
+        # the corners and the centre of a triangle always mark their cell: thin or tiny triangles must not leave gaps
+        for px, py in ((ax, ay), (bx, by), (cx, cy), ((ax + bx + cx) / 3, (ay + by + cy) / 3)):
+            cells.add((min(grid - 1, int(px)), min(grid - 1, int(py))))
+        if area == 0:
+            continue
+        for gy in range(lo_y, hi_y + 1):
+            for gx in range(lo_x, hi_x + 1):
+                px, py = gx + 0.5, gy + 0.5
+                w0 = (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+                w1 = (cx - bx) * (py - by) - (cy - by) * (px - bx)
+                w2 = (ax - cx) * (py - cy) - (ay - cy) * (px - cx)
+                if (w0 >= 0 and w1 >= 0 and w2 >= 0) or (w0 <= 0 and w1 <= 0 and w2 <= 0):
+                    cells.add((gx, gy))
+    # directed boundary edges of the cells (clockwise on screen, y down), chained into loops
+    nxt: dict[tuple[int, int], list[tuple[int, int]]] = {}
+    for gx, gy in cells:
+        if (gx, gy - 1) not in cells:
+            nxt.setdefault((gx, gy), []).append((gx + 1, gy))
+        if (gx + 1, gy) not in cells:
+            nxt.setdefault((gx + 1, gy), []).append((gx + 1, gy + 1))
+        if (gx, gy + 1) not in cells:
+            nxt.setdefault((gx + 1, gy + 1), []).append((gx, gy + 1))
+        if (gx - 1, gy) not in cells:
+            nxt.setdefault((gx, gy + 1), []).append((gx, gy))
+    loops: list[list[tuple[int, int]]] = []
+    while nxt:
+        start = next(iter(nxt))
+        loop = [start]
+        cur = start
+        while True:
+            options = nxt.get(cur)
+            if not options:
+                break
+            step = options.pop()
+            if not options:
+                del nxt[cur]
+            cur = step
+            if cur == start:
+                break
+            loop.append(cur)
+        if len(loop) >= 3:
+            loops.append(loop)
+
+    def area_of(loop: list[tuple[int, int]]) -> float:
+        n = len(loop)
+        return abs(sum(loop[k][0] * loop[(k + 1) % n][1] - loop[(k + 1) % n][0] * loop[k][1] for k in range(n))) / 2
+
+    if not loops:
+        return []
+    outer = max(loops, key=area_of)
+    simple = _simplify([(float(x), float(y)) for x, y in outer], 0.75)
+    return [(px / grid, py / grid) for px, py in simple]
+
+
+def _concave_silhouettes(part: Part, steps: int) -> tuple[Silhouette, ...]:
+    out: list[Silhouette] = []
+    for k in range(steps):
+        angle = 2 * math.pi * k / steps
+        c, s = math.cos(angle), math.sin(angle)
+        flat = [tuple((x * c - y * s, x * s + y * c) for x, y, _ in tri) for tri in part.triangles]
+        outline = raster_outline(flat)  # type: ignore[arg-type]
+        if len(outline) < 3:
+            continue
+        xs = [p[0] for tri in flat for p in tri]
+        ys = [p[1] for tri in flat for p in tri]
+        w, h = max(xs) - min(xs), max(ys) - min(ys)
+        out.append(Silhouette(tuple(outline), w / h))
+    return tuple(out)
+
+
 def top_silhouettes(part: Part, steps: int = YAW_STEPS) -> tuple[Silhouette, ...]:
-    """The outline of `part` seen from above (along z) for `steps` turns about z, each in a unit box."""
+    """The outline of `part` seen from above (along z) for `steps` turns about z, each in a unit box. Convex unless the part kept its
+    triangles (`silhouette: concave` in the catalogue): then the real outer outline, with its concavities."""
+    if part.triangles:
+        return _concave_silhouettes(part, steps)
     out: list[Silhouette] = []
     for k in range(steps):
         angle = 2 * math.pi * k / steps

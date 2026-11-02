@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Concave outlines and COCO segmentation for catalogue parts.** A catalogue with `"silhouette": "concave"` keeps the triangles of its STL parts (up to `concave_max_triangles`, default 20000) and draws each part with its real outer outline seen from above, notches and arms included, instead of the convex outline (holes inside a part are still not kept, URDF parts stay convex). The COCO file now carries a `segmentation` polygon, clipped to the image, and the painted area for every object drawn with an outline; `verify` checks them. Without the option nothing changes. 8 tests.
+
 ## [0.1.4] - Classes taken from a model registry, scenes drawn from a catalogue of STL and URDF parts and datasets for visual servoing and for safety zones
 
 - **The classes of a registered model (`generate --classes-from REGISTRY --model NAME [--model-version X.Y.Z]`).** The dataset gets exactly the classes of that entry of the registry of HYDRA-UMC-DETECTION-HEF, in its order (the class id is the position), and the size of its input unless `--width` or `--height` say otherwise; a model without a `defect` class draws no defect. Without the options nothing changes. The manifest records the model name, version, input size and classes, never a path.

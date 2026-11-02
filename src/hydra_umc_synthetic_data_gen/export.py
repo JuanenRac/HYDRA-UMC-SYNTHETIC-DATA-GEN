@@ -18,7 +18,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .scene import FIXED_CLASSES, Scene
+from .scene import FIXED_CLASSES, Component, Scene
+from .shapes import polygon_spans
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,19 @@ def export_yolo(dataset: Dataset, out_dir: Path, split_of: dict[str, str] | None
         _write_lf(target / f"{stem}.txt", text)
 
 
+def _segmentation(component: Component, width: int, height: int) -> tuple[list[float], int] | None:
+    """COCO polygon (x1, y1, x2, y2, ...) of a component painted as a polygon, and its painted area; None for a rectangle."""
+    if component.polygon is None:
+        return None
+    area = sum(stop - first for _, first, stop in polygon_spans(component.polygon, width, height))
+    if area <= 0:
+        return None
+    flat: list[float] = []
+    for x, y in component.polygon:
+        flat.extend((float(min(max(x, 0), width)), float(min(max(y, 0), height))))
+    return flat, area
+
+
 def export_coco(dataset: Dataset, out_path: Path) -> None:
     """Write a single real COCO-format JSON annotation file for the dataset."""
     labels = class_names(dataset)
@@ -84,16 +98,20 @@ def export_coco(dataset: Dataset, out_path: Path) -> None:
     for image_id, (image_name, scene) in enumerate(dataset.scenes, start=1):
         images.append({"id": image_id, "file_name": image_name, "width": scene.width, "height": scene.height})
         for component in scene.components:
-            annotations.append(
-                {
-                    "id": next_annotation_id,
-                    "image_id": image_id,
-                    "category_id": category_id[component.label],
-                    "bbox": [component.x, component.y, component.width, component.height],
-                    "area": component.width * component.height,
-                    "iscrowd": 0,
-                }
-            )
+            annotation = {
+                "id": next_annotation_id,
+                "image_id": image_id,
+                "category_id": category_id[component.label],
+                "bbox": [component.x, component.y, component.width, component.height],
+                "area": component.width * component.height,
+                "iscrowd": 0,
+            }
+            outline = _segmentation(component, scene.width, scene.height)
+            if outline is not None:
+                # a part with its own outline: the polygon (clipped to the image) and the number of pixels it really paints
+                annotation["segmentation"] = [outline[0]]
+                annotation["area"] = outline[1]
+            annotations.append(annotation)
             next_annotation_id += 1
 
     categories = [{"id": index + 1, "name": name} for index, name in enumerate(labels)]
