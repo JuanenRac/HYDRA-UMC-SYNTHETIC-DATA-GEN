@@ -58,6 +58,8 @@ class DatasetManifest:
     layout: str = "flat"
     # the realism settings the images were made with (realism.py), when they were
     realism: dict | None = None
+    # where the classes, the parts and the extra annotations came from (names, sizes and checksums, never a path)
+    scenario: dict | None = None
 
     @property
     def is_clean(self) -> bool:
@@ -95,6 +97,7 @@ def build_manifest(
     layout: str = "flat",
     image_parts: dict[str, str] | None = None,
     realism: dict | None = None,
+    scenario: dict | None = None,
 ) -> DatasetManifest:
     scene_entries = tuple(
         SceneManifestEntry(
@@ -123,6 +126,7 @@ def build_manifest(
         classes_sha256=classes_hash(classes),
         layout=layout,
         realism=realism,
+        scenario=scenario,
     )
 
 
@@ -157,5 +161,7 @@ def write_manifest(manifest: DatasetManifest, path: Path) -> None:
             item["split"] = entry.split
     if manifest.realism is not None:
         payload["realism"] = manifest.realism
+    if manifest.scenario is not None:
+        payload["scenario"] = manifest.scenario
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, indent=2))

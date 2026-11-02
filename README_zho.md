@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-156%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,12 +35,12 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.1.3` |
 | 成熟度 | 成熟 |
-| 测试 | 136 (`python -m pytest -q tests`) |
+| 测试 | 156 (`python -m pytest -q tests`) |
 | 技术栈 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 不适用：这里的内容不在硬件上运行 |
 
-**跳转：** [概述](#-概述) · [架构](#-架构) · [快速开始](#-快速开始) · [测试](#-测试) · [仓库结构](#-仓库结构) · [相关项目](#-相关项目)
+**跳转：** [概述](#-概述) · [架构](#-架构) · [配置](#-配置) · [快速开始](#-快速开始) · [测试](#-测试) · [仓库结构](#-仓库结构) · [相关项目](#-相关项目)
 
 ## 🚦 项目状态
 
@@ -51,7 +51,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟢 | 就其用途而言已完整且稳定；上面的诚实性检查列出了已知限制 |
-| 测试 | 🟢 | 136 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 156 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🟢 | 不适用：这里的内容不在硬件上运行 |
 | 部署 | 🟠 | 已作为发布版本公开；在干净机器上安装有文档，但没有记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
@@ -113,6 +113,10 @@ flowchart LR
 * **为何验证复用 `render.py` 自身的行大小公式，而非使用第二个独立的解析器。** `validate_bmp_integrity()` 直接从 `render.py` 导入 `_row_size()`，而不是重新推导 BMP 行填充计算——对确切字节布局采用单一事实来源，可避免未来对写入器的真实改动在无声中与校验器失步。
 * **为何“可复现”是清单中的一个字段，而不仅是 `--seed` 隐含的一种属性。** 在此改动之前，`--seed` 已经使生成过程具有确定性，但没有任何记录能说明磁盘上某个数据集是否真的使用了种子——消费者事后无法区分一次可复现的运行和一次随机的运行。`manifest.json` 的 `reproducible` 标志加上每张图像真实的 sha256，使这一断言变得可核实。
 
+## ⚙️ 配置
+
+来自外部的类别与零件（除非给出选项，否则全部关闭）：`generate --classes-from 注册表 --model 名称` 从 HYDRA-UMC-DETECTION-HEF 的注册表中取得按模型顺序排列的类别（该顺序即类别 id）和输入尺寸，若模型没有 `defect` 类则不绘制缺陷；清单中只会出现名称、版本、尺寸和类别，绝不会出现路径。`--catalog 文件` 用 STL 和 URDF 文件目录中真实零件的轮廓（从上方看的凸轮廓，仅限目录文件夹内的文件）代替矩形来绘制物体。`--servoing-config 文件`（需要目录；`configs/servoing.json`）把零件按采样的 6 自由度位姿放在针孔相机前，并写出 `poses.json`，其中有内参以及每张图像中每个零件的平移、四元数和角度。`--safety-config 文件`（`configs/safety_zones.json`）在矩形区域内外加入风格化的人物，并写出 `zones.json`，包含区域、边界框以及安全系统应采取的动作（`stop`、`slow` 或 `clear`）；`enabled` 不是 `true` 的文件不会改变任何东西，`verify` 会对照清单检查这两个文件。
+
 ## 🚀 快速开始
 
 需要 Python 3.10 或更高版本。
@@ -125,7 +129,7 @@ flowchart LR
 
 ## 🧪 测试
 
-运行 `python -m pytest -q tests` 会执行 136 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
+运行 `python -m pytest -q tests` 会执行 156 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 
@@ -217,7 +221,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         入口点 + 真实的 `generate` 子命令
 │   └── verify.py                       对照自身的清单及内部一致性检查完成的数据集文件夹 (校验和、YOLO 标签、COCO 标注)
 ├── tests/                              真实测试：生成、渲染、导出、端到端 CLI
-├── configs/                            真实感效果的参考文件（关闭）
+├── configs/                            可选效果与场景的参考文件（关闭）
 ├── docs/                               文档与程序化生成指南
 ├── images/                             媒体与图表
 ├── tools/                              ci_validate.py——CI 使用的 manifest/CHANGELOG/docs 校验

@@ -325,6 +325,19 @@ The boxes move with the image (the box of the four corners of each box, clipped 
 `calibration --out DIR [--count N] [--width W] [--height H] [--components N] [--defect-rate R] [--seed S] [--jobs N] [--realism-config FILE]` writes N PNG images (256 by default, 1 to 2000) at the size of the model input and a
 `calibration.json` (purpose, seed, size, settings and the SHA-256 of every image); the folder must be empty or new. Exit code `2` for a bound that is not respected.
 
+## Classes of a model, catalogue outlines, servoing and safety datasets
+
+Every option below is off unless it is given.
+
+| Option | What it does |
+|---|---|
+| `--classes-from REGISTRY --model NAME [--model-version X.Y.Z]` | The classes of that entry of a registry of HYDRA-UMC-DETECTION-HEF (a JSON array), in its order, and the size of its input (`--width` and `--height` still win). Without `--model-version`, the newest stable entry. A model without a `defect` class draws no defect. Only name, version, input size and classes reach `manifest.json` (`scenario.classes_from`), never a path. |
+| `--catalog FILE` | A JSON catalogue `{"unit_scale": 0.001, "parts": [{"label": "bolt", "stl": "parts/bolt.stl"}, {"label": "bracket", "urdf": "parts/bracket.urdf", "scale": 0.001}]}`. Each object takes the outline of a part seen from above (a convex outline from 128 support points of the mesh) at a random turn and size. Files must sit inside the folder of the catalogue; a URDF with a DOCTYPE or an entity, or a mesh through `package://`, is refused; a URDF part is its `visual` geometry at the origin of each visual (joints are ignored). The manifest keeps the labels and the SHA-256 of the files. |
+| `--servoing-config FILE` | Needs `--catalog`. Parts at sampled 6-DOF poses in front of a pinhole camera; `poses.json` has the intrinsics (`fx`, `fy`, `cx`, `cy`) and, per image, `translation_m`, `rotation_quaternion_wxyz`, `rotation_rpy_deg` and the box of each part (OpenCV camera frame: x right, y down, z forward). Keys: `enabled`, `fov_deg`, `objects.min/max`, `depth_m.min/max`, `max_tilt_deg`, `min_inside_fraction`, `max_attempts` (see `configs/servoing.json`). |
+| `--safety-config FILE` | Stylised people (class `person`) in and out of rectangular zones of kind `stop` or `slow`; `zones.json` has the zones, and per image the box and the overlap of each person with each zone and `expected_action` (`stop`, `slow` or `clear`). Keys: `enabled`, `zones`, `people.min/max`, `height_fraction.min/max`, `in_zone_probability`, `min_overlap` (see `configs/safety_zones.json`). A model given with `--classes-from` must have the class `person`. |
+
+A servoing or safety file whose `enabled` is not `true` is read, checked and ignored. `verify --out DIR` checks that `poses.json` and `zones.json` describe exactly the images of the manifest. An option that cannot be used exits with `2` before any file is written.
+
 ## Exit codes
 
 | Code | Meaning |

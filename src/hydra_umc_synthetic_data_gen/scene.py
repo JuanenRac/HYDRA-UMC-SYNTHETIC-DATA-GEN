@@ -16,7 +16,10 @@ will eventually need to solve - without waiting on the renderer.
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+
+from .shapes import Silhouette, fit_polygon, polygon_spans, spans_box
 
 DEFAULT_LABELS: tuple[str, ...] = ("bolt", "bracket", "gear", "connector")
 DEFECT_LABEL = "defect"
@@ -110,6 +113,9 @@ class Component:
     height: int
     color: tuple[int, int, int]
     scratch: tuple[ScratchPoint, ...] | None = None
+    # The outline of a part from a catalogue (pixels of the canvas, any simple polygon): the object is painted as this shape instead of the
+    # whole rectangle, and the rectangle is the box of the pixels it really covers.
+    polygon: tuple[tuple[int, int], ...] | None = None
 
 
 def _scratch_box(scratch: tuple[ScratchPoint, ...], width: int, height: int) -> tuple[int, int, int, int] | None:
@@ -138,6 +144,10 @@ def _painted_cells(component: "Component", width: int, height: int) -> set[tuple
                     px, py = point.x + ox, point.y + oy
                     if 0 <= px < width and 0 <= py < height:
                         cells.add((px, py))
+        return cells
+    if component.polygon is not None:
+        for row, first, stop in polygon_spans(component.polygon, width, height):
+            cells.update((px, row) for px in range(first, stop))
         return cells
     for py in range(max(0, component.y), min(height, component.y + component.height)):
         for px in range(max(0, component.x), min(width, component.x + component.width)):
@@ -187,6 +197,7 @@ def generate_scene(
     labels: tuple[str, ...] = DEFAULT_LABELS,
     min_size: int = 16,
     max_size: int = 48,
+    shapes: Mapping[str, Sequence[Silhouette]] | None = None,
 ) -> Scene:
     """Real, deterministic (given `rng`) procedural scene generation.
 
@@ -219,13 +230,31 @@ def generate_scene(
     effective_min_size = min(min_size, effective_max_size)
 
     for _ in range(num_components):
-        w = rng.randint(effective_min_size, effective_max_size)
-        h = rng.randint(effective_min_size, effective_max_size)
-        x = rng.randint(0, max(0, width - w))
-        y = rng.randint(0, max(0, height - h))
-        label = rng.choice(labels)
-        color = (rng.randint(0, 180), rng.randint(0, 180), rng.randint(0, 180))
-        components.append(Component(label=label, x=x, y=y, width=w, height=h, color=color))
+        if shapes:
+            # a part of the catalogue: its own outline at a random size and turn, not a rectangle
+            label = rng.choice(labels)
+            shape = rng.choice(tuple(shapes[label]))
+            longest = rng.randint(effective_min_size, effective_max_size)
+            w = longest if shape.aspect >= 1 else max(2, round(longest * shape.aspect))
+            h = longest if shape.aspect < 1 else max(2, round(longest / shape.aspect))
+            x = rng.randint(0, max(0, width - w))
+            y = rng.randint(0, max(0, height - h))
+            color = (rng.randint(0, 180), rng.randint(0, 180), rng.randint(0, 180))
+            polygon = fit_polygon(shape.points, x, y, w, h)
+            box = spans_box(polygon_spans(polygon, width, height))
+            if box is None:
+                continue
+            bx, by, bw, bh = box
+            components.append(Component(label=label, x=bx, y=by, width=bw, height=bh, color=color, polygon=polygon))
+            w, h, x, y = bw, bh, bx, by
+        else:
+            w = rng.randint(effective_min_size, effective_max_size)
+            h = rng.randint(effective_min_size, effective_max_size)
+            x = rng.randint(0, max(0, width - w))
+            y = rng.randint(0, max(0, height - h))
+            label = rng.choice(labels)
+            color = (rng.randint(0, 180), rng.randint(0, 180), rng.randint(0, 180))
+            components.append(Component(label=label, x=x, y=y, width=w, height=h, color=color))
 
         if rng.random() < defect_probability:
             dw = max(4, w // 3)

@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-156%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,12 +35,12 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.1.3` |
 | 成熟度 | 確立 |
-| テスト | 136 (`python -m pytest -q tests`) |
+| テスト | 156 (`python -m pytest -q tests`) |
 | 技術 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 対象 | 利用者の PC |
 | 実機での確認 | 対象外：ここにあるものはハードウェア上では動きません |
 
-**移動：** [概要](#-概要) · [アーキテクチャ](#-アーキテクチャ) · [クイックスタート](#-クイックスタート) · [テスト](#-テスト) · [リポジトリの構成](#-リポジトリの構成) · [関連プロジェクト](#-関連プロジェクト)
+**移動：** [概要](#-概要) · [アーキテクチャ](#-アーキテクチャ) · [設定](#-設定) · [クイックスタート](#-クイックスタート) · [テスト](#-テスト) · [リポジトリの構成](#-リポジトリの構成) · [関連プロジェクト](#-関連プロジェクト)
 
 ## 🚦 プロジェクトの状況
 
@@ -51,7 +51,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟢 | 目的に対して完成していて安定しています。既知の制限は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 136 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 156 件。変更のたびに実行されます |
 | 実機 | 🟢 | 対象外：ここにあるものはハードウェア上では動きません |
 | デプロイ | 🟠 | リリースとして公開されています。新しい環境へのインストールは文書化されていますが記録はありません |
 | ドキュメント | 🟢 | 8 言語の README。変更のたびにマニフェストと照合されます |
@@ -116,6 +116,10 @@ flowchart LR
 * **検証が独立した第二のパーサーではなく `render.py` 自身の行サイズ計算式を再利用する理由。** `validate_bmp_integrity()` は BMP の行パディング計算を再度導出するのではなく、`render.py` から `_row_size()` を直接インポートします——正確なバイトレイアウトについて単一の真実の情報源を持つことで、将来ライター側に加えられる実際の変更がチェッカーと気づかぬうちに食い違ってしまうことを防ぎます。
 * **「再現可能」が `--seed` の暗黙のプロパティではなく、マニフェストのフィールドである理由。** この変更以前から `--seed` は生成を決定論的にしていましたが、ディスク上の特定のデータセットが実際にシードを使用したかどうかを記録するものは何もありませんでした——利用者は後から再現可能な実行とランダムな実行を区別する手段を持っていませんでした。`manifest.json` の `reproducible` フラグと各画像の実際の sha256 により、この主張が検証可能になります。
 
+## ⚙️ 設定
+
+外部からのクラスと部品（オプションを指定しない限りすべてオフ）：`generate --classes-from REGISTRY --model NAME` は、HYDRA-UMC-DETECTION-HEF のレジストリからモデルの順序どおりのクラス（その順序がクラス ID）と入力サイズを取り込み、モデルに `defect` クラスがなければ欠陥を描きません。マニフェストに入るのは名前、バージョン、サイズ、クラスだけで、パスは決して入りません。`--catalog FILE` は、長方形の代わりに、STL と URDF ファイルのカタログにある実際の部品の輪郭（上から見た凸の輪郭。カタログのフォルダ内のファイルのみ）で物体を描きます。`--servoing-config FILE`（カタログが必要。`configs/servoing.json`）は、サンプリングした 6 自由度の姿勢でピンホールカメラの前に部品を置き、内部パラメータと、画像ごとに各部品の並進・クォータニオン・角度を記した `poses.json` を書きます。`--safety-config FILE`（`configs/safety_zones.json`）は、長方形のゾーンの内外に様式化した人物を加え、ゾーン、ボックス、安全システムが取るべき動作（`stop`、`slow`、`clear`）を記した `zones.json` を書きます。`enabled` が `true` でないファイルは何も変えず、`verify` は両ファイルをマニフェストと照合します。
+
 ## 🚀 クイックスタート
 
 Python 3.10 以上が必要です。
@@ -128,7 +132,7 @@ Python 3.10 以上が必要です。
 
 ## 🧪 テスト
 
-`python -m pytest -q tests` で自動テスト 136 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
+`python -m pytest -q tests` で自動テスト 156 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
@@ -225,7 +229,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         エントリポイント + 実際の `generate` サブコマンド
 │   └── verify.py                       完成したデータセットフォルダーを自身のマニフェストおよび内部整合性で検査 (チェックサム、YOLO ラベル、COCO 注釈)
 ├── tests/                              実際のテスト：生成、レンダリング、エクスポート、エンドツーエンド CLI
-├── configs/                            リアリズム効果のリファレンスファイル（オフ）
+├── configs/                            任意の効果とシナリオのリファレンスファイル（オフ）
 ├── docs/                               ドキュメントとプロシージャル生成ガイド
 ├── images/                             メディアと図表
 ├── tools/                              ci_validate.py —— CI が使用する manifest/CHANGELOG/docs の検証

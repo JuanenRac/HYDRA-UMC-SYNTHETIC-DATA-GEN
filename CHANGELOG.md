@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The classes of a registered model (`generate --classes-from REGISTRY --model NAME [--model-version X.Y.Z]`).** The dataset gets exactly the classes of that entry of the registry of HYDRA-UMC-DETECTION-HEF, in its order (the class id is the position), and the size of its input unless `--width` or `--height` say otherwise; a model without a `defect` class draws no defect. Without the options nothing changes. The manifest records the model name, version, input size and classes, never a path.
+
+- **Outlines of real parts (`generate --catalog FILE`).** A catalogue of STL (binary or ASCII) and URDF files (box, cylinder, sphere and mesh visuals) next to a JSON file gives each object the outline of its part seen from above, at a random turn and size, instead of a rectangle; the box is the box of the pixels really painted. The files must sit inside the folder of the catalogue, a URDF with a DOCTYPE or an entity is refused and the manifest keeps only the labels and the SHA-256 of the files.
+
+- **A dataset for visual servoing (`generate --catalog FILE --servoing-config FILE`).** Catalogue parts are placed at sampled 6-DOF poses in front of a pinhole camera (field of view, depth range, tilt and number of parts from the file, `configs/servoing.json`) and `poses.json` records the intrinsics and, for each image, the translation in metres, the quaternion and the angles of every part. Off unless the file says `enabled: true`.
+
+- **A dataset for the safety zones (`generate --safety-config FILE`).** Stylised people (an abstract pictogram) are added in and out of rectangular zones of kind `stop` or `slow` (`configs/safety_zones.json`) under the class `person`, and `zones.json` records the zones, the boxes, the overlap of each person with each zone and the action a safety system should take (`stop`, `slow` or `clear`). Off unless the file says `enabled: true`.
+
+- `verify` checks that `poses.json` and `zones.json` describe exactly the images of the manifest. 20 tests.
+
 ## [0.1.3] - The Ultralytics layout, realism effects that are off unless a file enables them and a calibration set
 
 - **The Ultralytics layout (`generate --layout ultralytics`):** with `--split` (and a val part) the images go to `images/train`, `images/val` and `images/test`, the YOLO labels to `labels/<part>`, the COCO annotations to `annotations/instances_<part>.json` and `data.yaml` names the three folders, which is the structure a YOLO trainer expects; there are no list files, the folders are the lists. The scenes are the same bytes as in the flat layout (the part of a scene depends only on the seed and its index, so it is known before anything is rendered); the manifest records the `layout` and the `split` of each scene, and `verify` reads both layouts (images in the wrong folder, strays outside the folders of the parts, a label that belongs to no scene of its part). The flat layout stays the default and its manifest is the one it always was.

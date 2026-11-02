@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-156%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,12 +35,12 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.3` |
 | Reifegrad | Etabliert |
-| Tests | 136 (`python -m pytest -q tests`) |
+| Tests | 156 (`python -m pytest -q tests`) |
 | Technik | Python / procedural scene generation / YOLO/COCO annotation export |
 | Ziel | Der PC der Person, die es benutzt |
 | Auf echter Hardware | Nicht zutreffend: nichts hiervon läuft auf Hardware |
 
-**Springe zu:** [Überblick](#-überblick) · [Architektur](#-architektur) · [Schnellstart](#-schnellstart) · [Tests](#-tests) · [Struktur des Repositorys](#-struktur-des-repositorys) · [Verwandte Projekte](#-verwandte-projekte)
+**Springe zu:** [Überblick](#-überblick) · [Architektur](#-architektur) · [Konfiguration](#-konfiguration) · [Schnellstart](#-schnellstart) · [Tests](#-tests) · [Struktur des Repositorys](#-struktur-des-repositorys) · [Verwandte Projekte](#-verwandte-projekte)
 
 ## 🚦 Projektstatus
 
@@ -51,7 +51,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟢 | Für seinen Zweck vollständig und stabil; die Ehrlichkeitsprüfung oben nennt die bekannten Grenzen |
-| Tests | 🟢 | 136 automatische Tests, bei jeder Änderung ausgeführt |
+| Tests | 🟢 | 156 automatische Tests, bei jeder Änderung ausgeführt |
 | Echte Hardware | 🟢 | Nicht zutreffend: nichts hiervon läuft auf Hardware |
 | Bereitstellung | 🟠 | Als Release veröffentlicht; die Installation auf einem frischen Rechner ist dokumentiert, aber nicht vermerkt |
 | Dokumentation | 🟢 | README in acht Sprachen, bei jeder Änderung gegen das Manifest geprüft |
@@ -107,6 +107,10 @@ flowchart LR
 * **Warum die Validierung `render.py`s eigene Zeilengrößen-Formel wiederverwendet statt eines zweiten, unabhängigen Parsers.** `validate_bmp_integrity()` importiert `_row_size()` direkt aus `render.py`, statt die BMP-Zeilenauffüllung neu herzuleiten - eine einzige Quelle der Wahrheit für das exakte Byte-Layout verhindert, dass sich eine künftige echte Änderung im Writer stillschweigend vom Prüfer desynchronisiert.
 * **Warum "reproduzierbar" ein Manifest-Feld ist, nicht nur eine unausgesprochene Eigenschaft von `--seed`.** `--seed` machte die Generierung schon vor dieser Änderung deterministisch, aber nichts hielt fest, ob ein gegebener Datensatz auf der Festplatte tatsächlich einen Seed verwendet hatte - ein Konsument hatte keine Möglichkeit, im Nachhinein einen reproduzierbaren von einem zufälligen Lauf zu unterscheiden. Das `reproducible`-Flag von `manifest.json` plus ein echtes sha256 pro Bild macht diese Behauptung überprüfbar.
 
+## ⚙️ Konfiguration
+
+Klassen und Teile von außen (alles aus, sofern die Option nicht gegeben wird): `generate --classes-from REGISTER --model NAME` übernimmt die Klassen in der Reihenfolge des Modells (sie ist die Klassen-ID) und die Eingabegröße aus einem Register von HYDRA-UMC-DETECTION-HEF und zeichnet keinen Defekt, wenn das Modell keine Klasse `defect` hat; ins Manifest gelangen nur Name, Version, Größe und Klassen, nie ein Pfad. `--catalog DATEI` zeichnet die Objekte mit dem Umriss der echten Teile eines Katalogs aus STL- und URDF-Dateien (ein konvexer Umriss von oben, nur Dateien im Ordner des Katalogs) statt mit Rechtecken. `--servoing-config DATEI` (braucht einen Katalog; `configs/servoing.json`) platziert Teile in gesampelten 6-DOF-Posen vor einer Lochkamera und schreibt `poses.json` mit den Intrinsics und je Bild Translation, Quaternion und Winkeln jedes Teils. `--safety-config DATEI` (`configs/safety_zones.json`) fügt stilisierte Personen in und außerhalb rechteckiger Zonen hinzu und schreibt `zones.json` mit den Zonen, den Rahmen und der Aktion, die ein Sicherheitssystem wählen sollte (`stop`, `slow` oder `clear`); eine Datei, deren `enabled` nicht `true` ist, ändert nichts, und `verify` prüft beide Dateien gegen das Manifest.
+
 ## 🚀 Schnellstart
 
 Benötigt Python 3.10 oder neuer.
@@ -119,7 +123,7 @@ Benötigt Python 3.10 oder neuer.
 
 ## 🧪 Tests
 
-136 automatische Tests laufen mit `python -m pytest -q tests`. Sie brauchen weder Hardware noch etwas außerhalb dieses Rechners.
+156 automatische Tests laufen mit `python -m pytest -q tests`. Sie brauchen weder Hardware noch etwas außerhalb dieses Rechners.
 
 Die CI führt `HYDRA_UMC_CI=1 python tools/ci_validate.py` aus; das prüft das Manifest, die Dokumente, die acht READMEs und die Bilder.
 
@@ -206,7 +210,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         Einstiegspunkt + echtes `generate`-Subcommand
 │   └── verify.py                       Prüft einen fertigen Datensatzordner gegen sein eigenes Manifest und gegen sich selbst (Prüfsummen, YOLO-Labels, COCO-Annotationen)
 ├── tests/                              Echte Tests: Generierung, Rendering, Export, End-to-End-CLI
-├── configs/                            Referenzdatei der Realismus-Effekte (aus)
+├── configs/                            Referenzdateien der optionalen Effekte und Szenarien (aus)
 ├── docs/                               Dokumentation und prozedurale Anleitungen
 ├── images/                             Medien und Diagramme
 ├── tools/                              ci_validate.py - Manifest-/CHANGELOG-/Doku-Validierung, von der CI genutzt

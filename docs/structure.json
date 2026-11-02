@@ -266,24 +266,24 @@
         {
           "name": "configs/",
           "desc": {
-            "en": "Reference file of the realism effects (off)",
-            "es": "Fichero de referencia de los efectos de realismo (apagado)",
-            "de": "Referenzdatei der Realismus-Effekte (aus)",
-            "fr": "Fichier de référence des effets de réalisme (désactivé)",
-            "it": "File di riferimento degli effetti di realismo (spento)",
-            "ja": "リアリズム効果のリファレンスファイル（オフ）",
-            "zh": "真实感效果的参考文件（关闭）",
-            "pt": "Ficheiro de referência dos efeitos de realismo (desligado)"
+            "en": "Reference files of the optional effects and scenarios (off)",
+            "es": "Ficheros de referencia de efectos y escenarios opcionales (apagado)",
+            "de": "Referenzdateien der optionalen Effekte und Szenarien (aus)",
+            "fr": "Fichiers de référence des effets et scénarios optionnels (désactivé)",
+            "it": "File di riferimento di effetti e scenari opzionali (spento)",
+            "ja": "任意の効果とシナリオのリファレンスファイル（オフ）",
+            "zh": "可选效果与场景的参考文件（关闭）",
+            "pt": "Ficheiros de referência de efeitos e cenários opcionais (desligado)"
           },
           "tree_desc": {
-            "en": "Reference file of the realism effects (off)",
-            "es": "Fichero de referencia de los efectos de realismo (apagado)",
-            "de": "Referenzdatei der Realismus-Effekte (aus)",
-            "fr": "Fichier de référence des effets de réalisme (désactivé)",
-            "it": "File di riferimento degli effetti di realismo (spento)",
-            "ja": "リアリズム効果のリファレンスファイル（オフ）",
-            "zh": "真实感效果的参考文件（关闭）",
-            "pt": "Ficheiro de referência dos efeitos de realismo (desligado)"
+            "en": "Reference files of the optional effects and scenarios (off)",
+            "es": "Ficheros de referencia de efectos y escenarios opcionales (apagado)",
+            "de": "Referenzdateien der optionalen Effekte und Szenarien (aus)",
+            "fr": "Fichiers de référence des effets et scénarios optionnels (désactivé)",
+            "it": "File di riferimento di effetti e scenari opzionali (spento)",
+            "ja": "任意の効果とシナリオのリファレンスファイル（オフ）",
+            "zh": "可选效果与场景的参考文件（关闭）",
+            "pt": "Ficheiros de referência de efeitos e cenários opcionais (desligado)"
           }
         },
         {

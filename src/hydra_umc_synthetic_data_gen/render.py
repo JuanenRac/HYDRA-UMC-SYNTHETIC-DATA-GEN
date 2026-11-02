@@ -17,6 +17,7 @@ import zlib
 from pathlib import Path
 
 from .scene import Scene
+from .shapes import polygon_spans
 
 PNG_SIGNATURE = bytes.fromhex("89504e470d0a1a0a")
 
@@ -52,6 +53,11 @@ def _paint(scene: Scene) -> list[bytearray]:
                             row[offset] = int(row[offset] * (1 - sp.opacity) + comp.color[2] * sp.opacity)
                             row[offset + 1] = int(row[offset + 1] * (1 - sp.opacity) + comp.color[1] * sp.opacity)
                             row[offset + 2] = int(row[offset + 2] * (1 - sp.opacity) + comp.color[0] * sp.opacity)
+            continue
+        if comp.polygon is not None:
+            fill_color = bytes((comp.color[2], comp.color[1], comp.color[0]))
+            for row_y, first, stop in polygon_spans(comp.polygon, width, height):
+                pixels[row_y][first * 3 : stop * 3] = fill_color * (stop - first)
             continue
         y_start = max(0, comp.y)
         y_end = min(height, comp.y + comp.height)

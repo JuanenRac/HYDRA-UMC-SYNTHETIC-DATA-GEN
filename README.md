@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-156%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,12 +35,12 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.3` |
 | Maturity | Established |
-| Tests | 136 (`python -m pytest -q tests`) |
+| Tests | 156 (`python -m pytest -q tests`) |
 | Stack | Python / procedural scene generation / YOLO/COCO annotation export |
 | Target | The PC of the person using it |
 | On real hardware | Not applicable: nothing here runs on hardware |
 
-**Jump to:** [Overview](#-overview) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Testing](#-testing) · [Repository Structure](#-repository-structure) · [Related Projects](#-related-projects)
+**Jump to:** [Overview](#-overview) · [Architecture](#-architecture) · [Configuration](#-configuration) · [Quick start](#-quick-start) · [Testing](#-testing) · [Repository Structure](#-repository-structure) · [Related Projects](#-related-projects)
 
 ## 🚦 Project status
 
@@ -51,7 +51,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟢 | Complete for its purpose and stable; the honesty check above lists the known limits |
-| Tests | 🟢 | 136 automated tests, run on every change |
+| Tests | 🟢 | 156 automated tests, run on every change |
 | Real hardware | 🟢 | Not applicable: nothing here runs on hardware |
 | Deployment | 🟠 | Published as a release; installing it on a clean machine is documented but not recorded |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
@@ -107,6 +107,10 @@ flowchart LR
 * **Why validation reuses `render.py`'s own row-size formula instead of a second, independent parser.** `validate_bmp_integrity()` imports `render.py`'s `_row_size()` directly rather than re-deriving the BMP row-padding math - one source of truth for the exact byte layout means a real future change to the writer can't silently desynchronize from the checker.
 * **Why "reproducible" is a manifest field, not just an unstated property of `--seed`.** `--seed` already made generation deterministic before this change, but nothing recorded whether a given dataset on disk actually used one - a consumer had no way to tell a reproducible run from a random one after the fact. `manifest.json`'s `reproducible` flag plus a real per-image sha256 makes that claim checkable.
 
+## ⚙️ Configuration
+
+Classes and parts from outside (all off unless the option is given): `generate --classes-from REGISTRY --model NAME` takes the classes, in the order of the model (which is the class id), and the size of the input from a registry of HYDRA-UMC-DETECTION-HEF, and draws no defect when the model has no `defect` class; only the name, version, size and classes reach the manifest, never a path. `--catalog FILE` draws the objects with the outline of the real parts of a catalogue of STL and URDF files (a convex outline seen from above, files inside the folder of the catalogue only) instead of rectangles. `--servoing-config FILE` (needs a catalogue; `configs/servoing.json`) places parts at sampled 6-DOF poses in front of a pinhole camera and writes `poses.json` with the intrinsics and, per image, the translation, quaternion and angles of each part. `--safety-config FILE` (`configs/safety_zones.json`) adds stylised people in and out of rectangular zones and writes `zones.json` with the zones, the boxes and the action a safety system should take (`stop`, `slow` or `clear`); a file whose `enabled` is not `true` changes nothing, and `verify` checks both files against the manifest.
+
 ## 🚀 Quick start
 
 Requires Python 3.10 or newer.
@@ -119,7 +123,7 @@ Requires Python 3.10 or newer.
 
 ## 🧪 Testing
 
-136 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
+156 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
@@ -206,7 +210,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         Entry point + real `generate` subcommand
 │   └── verify.py                       Checks a finished dataset folder against its own manifest and against itself (checksums, YOLO labels, COCO annotations)
 ├── tests/                              Real tests: generation, rendering, export, end-to-end CLI
-├── configs/                            Reference file of the realism effects (off)
+├── configs/                            Reference files of the optional effects and scenarios (off)
 ├── docs/                               Documentation and procedural guides
 ├── images/                             Media and diagrams
 ├── tools/                              ci_validate.py - manifest/CHANGELOG/docs validation used by CI

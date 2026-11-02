@@ -26,6 +26,8 @@ class Dataset:
     """A real, ordered collection of (image filename, Scene) pairs."""
 
     scenes: tuple[tuple[str, Scene], ...]
+    # The exact class list when it is given from outside (the classes of a registered model); None keeps the fixed list of this tool.
+    classes: tuple[str, ...] | None = None
 
 
 def _write_lf(path: Path, text: str) -> None:
@@ -39,6 +41,8 @@ def class_names(dataset: Dataset) -> list[str]:
     """The class list, in a fixed order that does not depend on which labels a
     run happens to contain (so class ids mean the same in every dataset). A
     label outside the known set, if one is ever generated, goes after them."""
+    if dataset.classes is not None:
+        return list(dataset.classes)
     seen = {component.label for _, scene in dataset.scenes for component in scene.components}
     return list(FIXED_CLASSES) + sorted(seen - set(FIXED_CLASSES))
 

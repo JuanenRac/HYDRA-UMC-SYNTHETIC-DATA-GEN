@@ -212,6 +212,16 @@ def verify_output(out_dir: Path) -> list[ValidationIssue]:
             stems = {Path(str(scene.get("image"))).stem for scene in scenes if isinstance(scene, dict)}
             for extra in sorted(p.name for p in labels_dir.glob("*.txt") if p.stem not in stems):
                 issues.append(_issue("unexpected_file", f"labels/{extra} belongs to no scene of the manifest"))
+    scenario = manifest.get("scenario")
+    if isinstance(scenario, dict):
+        for key, file_name in (("servoing", "poses.json"), ("safety", "zones.json")):
+            if key not in scenario:
+                continue
+            extra = _read_json(out_dir / file_name, "missing_extra", issues)
+            if isinstance(extra, dict):
+                images = extra.get("images")
+                if not isinstance(images, dict) or set(images) != {str(name) for name in listed}:
+                    issues.append(_issue("extra_mismatch", f"{file_name} does not describe exactly the images of the manifest"))
     for problem in check_splits(out_dir, {str(name) for name in listed}):
         issues.append(_issue("split_mismatch", problem))
     return issues

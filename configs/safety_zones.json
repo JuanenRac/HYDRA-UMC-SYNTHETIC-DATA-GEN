@@ -1,0 +1,11 @@
+{
+  "enabled": false,
+  "zones": [
+    {"name": "danger", "kind": "stop", "rect": [0.0, 0.0, 0.4, 1.0]},
+    {"name": "near", "kind": "slow", "rect": [0.4, 0.0, 0.7, 1.0]}
+  ],
+  "people": {"min": 0, "max": 2},
+  "height_fraction": {"min": 0.25, "max": 0.5},
+  "in_zone_probability": 0.5,
+  "min_overlap": 0.2
+}
