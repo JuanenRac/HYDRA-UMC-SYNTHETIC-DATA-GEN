@@ -30,6 +30,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import cast
 
 from .export import Dataset, export_coco, export_coco_by_split, export_yolo
 from .manifest import build_manifest, write_manifest
@@ -140,7 +141,9 @@ def _resolve_scenarios(args: argparse.Namespace, errors: list[str]) -> tuple[Sce
     """(plan, exact class list, what the manifest says about the scenarios) from the optional files of `generate`; errors are appended to `errors`.
 
     Each option is off unless it is given, and a servoing or safety file whose `enabled` is not true changes nothing."""
-    model_classes = catalog = servoing = safety = None
+    model_classes = catalog = None
+    servoing: ServoingConfig | None = None
+    safety: SafetyConfig | None = None
     if args.classes_from is not None:
         if not args.model:
             errors.append("--classes-from needs --model")
@@ -167,9 +170,9 @@ def _resolve_scenarios(args: argparse.Namespace, errors: list[str]) -> tuple[Sce
             continue
         if loaded.enabled:
             if option == "servoing_config":
-                servoing = loaded
+                servoing = cast(ServoingConfig, loaded)
             else:
-                safety = loaded
+                safety = cast(SafetyConfig, loaded)
         else:
             print(f"note: {name} is not enabled (enabled: true is needed); it is ignored")
     if servoing is not None and catalog is None:
@@ -179,7 +182,7 @@ def _resolve_scenarios(args: argparse.Namespace, errors: list[str]) -> tuple[Sce
 
     classes = model_classes.classes if model_classes is not None else None
     labels: tuple[str, ...] = DEFAULT_LABELS
-    shapes = None
+    shapes: dict[str, tuple[Silhouette, ...]] | None = None
     if catalog is not None:
         shapes = {}
         for part in catalog.parts:
@@ -374,13 +377,13 @@ def _write_extras(out_dir: Path, extras: dict[str, dict], plan: ScenePlan | None
         with open(out_dir / "poses.json", "w", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(payload, indent=2))
     if plan.safety is not None:
-        payload = {
+        zones_payload = {
             "zones": [{"name": z.name, "kind": z.kind, "rect": list(z.rect)} for z in plan.safety.zones],
             "min_overlap": plan.safety.min_overlap,
             "images": {name: extra.get("safety", {"people": [], "expected_action": "clear"}) for name, extra in extras.items()},
         }
         with open(out_dir / "zones.json", "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(json.dumps(payload, indent=2))
+            handle.write(json.dumps(zones_payload, indent=2))
 
 
 MAX_CALIBRATION_IMAGES = 2_000

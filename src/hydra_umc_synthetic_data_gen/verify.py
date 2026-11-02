@@ -217,9 +217,9 @@ def verify_output(out_dir: Path) -> list[ValidationIssue]:
         for key, file_name in (("servoing", "poses.json"), ("safety", "zones.json")):
             if key not in scenario:
                 continue
-            extra = _read_json(out_dir / file_name, "missing_extra", issues)
-            if isinstance(extra, dict):
-                images = extra.get("images")
+            extra_doc = _read_json(out_dir / file_name, "missing_extra", issues)
+            if isinstance(extra_doc, dict):
+                images = extra_doc.get("images")
                 if not isinstance(images, dict) or set(images) != {str(name) for name in listed}:
                     issues.append(_issue("extra_mismatch", f"{file_name} does not describe exactly the images of the manifest"))
     for problem in check_splits(out_dir, {str(name) for name in listed}):

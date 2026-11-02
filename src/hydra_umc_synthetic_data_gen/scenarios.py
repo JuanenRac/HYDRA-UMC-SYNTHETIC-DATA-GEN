@@ -255,7 +255,7 @@ def servoing_scene(
             continue
         color = (rng.randint(0, 180), rng.randint(0, 180), rng.randint(0, 180))
         component = Component(label=part.label, x=box[0], y=box[1], width=box[2], height=box[3], color=color, polygon=polygon)
-        record = {
+        record: dict[str, object] = {
             "label": part.label,
             "translation_m": [round(c, 6) for c in translation],
             "rotation_quaternion_wxyz": list(_quaternion(matrix)),
@@ -432,7 +432,7 @@ def add_people(
     # the people go last, so none of them is covered by a part
     combined = Scene(width, height, scene.background_color, visible_components(scene.components + tuple(people), width, height))
     kept = {(c.x, c.y, c.width, c.height) for c in combined.components if c.label == PERSON_LABEL}
-    records = [r for r in records if tuple(r["box"]) in kept]  # type: ignore[arg-type]
+    records = [r for r in records if tuple(r["box"]) in kept]  # type: ignore[arg-type,operator]
     action = "clear"
     for record in records:
         for zone in config.zones:

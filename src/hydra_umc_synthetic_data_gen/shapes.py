@@ -153,12 +153,12 @@ def parse_stl(data: bytes, label: str = "stl", max_triangles: int = MAX_TRIANGLE
         parts = line.split()
         if len(parts) == 4 and parts[0] == "vertex":
             try:
-                v = (float(parts[1]), float(parts[2]), float(parts[3]))
+                vertex = (float(parts[1]), float(parts[2]), float(parts[3]))
             except ValueError as error:
                 raise CatalogError(f"{label}: a vertex is not a number") from error
-            if not all(math.isfinite(c) for c in v):
+            if not all(math.isfinite(c) for c in vertex):
                 raise CatalogError(f"{label}: a vertex is not a finite number")
-            vertices.add(v)
+            vertices.add(vertex)
             count += 1
             if count > 3 * max_triangles:
                 raise CatalogError(f"{label}: more than {max_triangles} triangles")
