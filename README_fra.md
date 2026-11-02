@@ -206,6 +206,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         Point d'entrée + sous-commande réelle `generate`
 │   └── verify.py                       Vérifie un dossier de jeu de données terminé par rapport à son manifeste et à lui-même (sommes de contrôle, étiquettes YOLO, annotations COCO)
 ├── tests/                              Tests réels : génération, rendu, export, CLI de bout en bout
+├── configs/                            Fichier de référence des effets de réalisme (désactivé)
 ├── docs/                               Documentation et guides procéduraux
 ├── images/                             Médias et diagrammes
 ├── tools/                              ci_validate.py - validation manifest/CHANGELOG/docs utilisée par la CI

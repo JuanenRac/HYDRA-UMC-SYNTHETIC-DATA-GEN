@@ -264,6 +264,29 @@
           }
         },
         {
+          "name": "configs/",
+          "desc": {
+            "en": "Reference file of the realism effects (off)",
+            "es": "Fichero de referencia de los efectos de realismo (apagado)",
+            "de": "Referenzdatei der Realismus-Effekte (aus)",
+            "fr": "Fichier de référence des effets de réalisme (désactivé)",
+            "it": "File di riferimento degli effetti di realismo (spento)",
+            "ja": "リアリズム効果のリファレンスファイル（オフ）",
+            "zh": "真实感效果的参考文件（关闭）",
+            "pt": "Ficheiro de referência dos efeitos de realismo (desligado)"
+          },
+          "tree_desc": {
+            "en": "Reference file of the realism effects (off)",
+            "es": "Fichero de referencia de los efectos de realismo (apagado)",
+            "de": "Referenzdatei der Realismus-Effekte (aus)",
+            "fr": "Fichier de référence des effets de réalisme (désactivé)",
+            "it": "File di riferimento degli effetti di realismo (spento)",
+            "ja": "リアリズム効果のリファレンスファイル（オフ）",
+            "zh": "真实感效果的参考文件（关闭）",
+            "pt": "Ficheiro de referência dos efeitos de realismo (desligado)"
+          }
+        },
+        {
           "name": "docs/",
           "desc": {
             "en": "Documentation and procedural guides",

@@ -217,6 +217,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         入口点 + 真实的 `generate` 子命令
 │   └── verify.py                       对照自身的清单及内部一致性检查完成的数据集文件夹 (校验和、YOLO 标签、COCO 标注)
 ├── tests/                              真实测试：生成、渲染、导出、端到端 CLI
+├── configs/                            真实感效果的参考文件（关闭）
 ├── docs/                               文档与程序化生成指南
 ├── images/                             媒体与图表
 ├── tools/                              ci_validate.py——CI 使用的 manifest/CHANGELOG/docs 校验

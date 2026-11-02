@@ -206,6 +206,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         Punto di ingresso + sottocomando reale `generate`
 │   └── verify.py                       Controlla una cartella di dataset finita rispetto al proprio manifesto e a sé stessa (checksum, etichette YOLO, annotazioni COCO)
 ├── tests/                              Test reali: generazione, rendering, esportazione, CLI end-to-end
+├── configs/                            File di riferimento degli effetti di realismo (spento)
 ├── docs/                               Documentazione e guide procedurali
 ├── images/                             Media e diagrammi
 ├── tools/                              ci_validate.py - validazione manifest/CHANGELOG/docs usata dalla CI

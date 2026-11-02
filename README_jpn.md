@@ -225,6 +225,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         エントリポイント + 実際の `generate` サブコマンド
 │   └── verify.py                       完成したデータセットフォルダーを自身のマニフェストおよび内部整合性で検査 (チェックサム、YOLO ラベル、COCO 注釈)
 ├── tests/                              実際のテスト：生成、レンダリング、エクスポート、エンドツーエンド CLI
+├── configs/                            リアリズム効果のリファレンスファイル（オフ）
 ├── docs/                               ドキュメントとプロシージャル生成ガイド
 ├── images/                             メディアと図表
 ├── tools/                              ci_validate.py —— CI が使用する manifest/CHANGELOG/docs の検証

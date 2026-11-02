@@ -206,6 +206,7 @@ HYDRA-UMC-SYNTHETIC-DATA-GEN/
 │   ├── main.py                         Einstiegspunkt + echtes `generate`-Subcommand
 │   └── verify.py                       Prüft einen fertigen Datensatzordner gegen sein eigenes Manifest und gegen sich selbst (Prüfsummen, YOLO-Labels, COCO-Annotationen)
 ├── tests/                              Echte Tests: Generierung, Rendering, Export, End-to-End-CLI
+├── configs/                            Referenzdatei der Realismus-Effekte (aus)
 ├── docs/                               Dokumentation und prozedurale Anleitungen
 ├── images/                             Medien und Diagramme
 ├── tools/                              ci_validate.py - Manifest-/CHANGELOG-/Doku-Validierung, von der CI genutzt
