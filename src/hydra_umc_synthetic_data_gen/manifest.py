@@ -19,6 +19,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .export import Dataset, class_names
 from .scene import Scene
@@ -31,6 +32,8 @@ class SceneManifestEntry:
     num_components: int
     label_counts: dict[str, int]
     sha256: str
+    # the part of the dataset the image belongs to; only in the Ultralytics layout
+    split: str | None = None
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,10 @@ class DatasetManifest:
     # trained with is this one. The hash is of the text of classes.txt, so `sha256sum classes.txt` gives the same.
     classes: tuple[str, ...] = ()
     classes_sha256: str = ""
+    # "flat" (images/ and labels/) or "ultralytics" (images/<part>/ and labels/<part>/, annotations/instances_<part>.json)
+    layout: str = "flat"
+    # the realism settings the images were made with (realism.py), when they were
+    realism: dict | None = None
 
     @property
     def is_clean(self) -> bool:
@@ -85,13 +92,17 @@ def build_manifest(
     labels: tuple[str, ...],
     fmt: str,
     issues: list[ValidationIssue],
+    layout: str = "flat",
+    image_parts: dict[str, str] | None = None,
+    realism: dict | None = None,
 ) -> DatasetManifest:
     scene_entries = tuple(
         SceneManifestEntry(
             image=image_name,
             num_components=len(scene.components),
             label_counts=_label_counts(scene),
-            sha256=_sha256_file(images_dir / image_name),
+            sha256=_sha256_file((images_dir / image_parts[image_name] if image_parts else images_dir) / image_name),
+            split=image_parts[image_name] if image_parts else None,
         )
         for image_name, scene in dataset.scenes
     )
@@ -110,11 +121,13 @@ def build_manifest(
         validation_issues=tuple(f"{issue.kind}: {issue.detail}" for issue in issues),
         classes=classes,
         classes_sha256=classes_hash(classes),
+        layout=layout,
+        realism=realism,
     )
 
 
 def write_manifest(manifest: DatasetManifest, path: Path) -> None:
-    payload = {
+    payload: dict[str, Any] = {
         "seed": manifest.seed,
         "reproducible": manifest.reproducible,
         "count": manifest.count,
@@ -137,5 +150,12 @@ def write_manifest(manifest: DatasetManifest, path: Path) -> None:
         "classes": list(manifest.classes),
         "classes_sha256": manifest.classes_sha256,
     }
+    # a flat dataset without realism writes the manifest it always wrote
+    if manifest.layout != "flat":
+        payload["layout"] = manifest.layout
+        for entry, item in zip(manifest.scenes, payload["scenes"], strict=True):
+            item["split"] = entry.split
+    if manifest.realism is not None:
+        payload["realism"] = manifest.realism
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, indent=2))

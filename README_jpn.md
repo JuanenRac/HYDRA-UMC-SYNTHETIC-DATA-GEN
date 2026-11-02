@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-101%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.1.2` |
 | 成熟度 | 確立 |
-| テスト | 101 (`python -m pytest -q tests`) |
+| テスト | 136 (`python -m pytest -q tests`) |
 | 技術 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 対象 | 利用者の PC |
 | 実機での確認 | 対象外：ここにあるものはハードウェア上では動きません |
@@ -51,7 +51,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟢 | 目的に対して完成していて安定しています。既知の制限は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 101 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 136 件。変更のたびに実行されます |
 | 実機 | 🟢 | 対象外：ここにあるものはハードウェア上では動きません |
 | デプロイ | 🟠 | リリースとして公開されています。新しい環境へのインストールは文書化されていますが記録はありません |
 | ドキュメント | 🟢 | 8 言語の README。変更のたびにマニフェストと照合されます |
@@ -78,6 +78,8 @@ Featuresの注記と正直な現状確認を参照してください)。
 * 🛠️ **欠陥注入（v0）：** コンポーネントごとの実際のランダムな矩形オーバーレイ、確率は設定可能。*（シンプルな実際のオーバーレイとして実装済み——実際の傷/部品欠落/はんだブリッジ形状は計画中）*
 * 📋 **データセットマニフェストと検証（v0）：** `generate` を実行するたびに、実際の `manifest.json`（再現可能シードのフラグ、生成パラメータ、各画像の実際の sha256 チェックサム）が書き込まれ、実際の生成後検証——シーン境界、既知の実際のファイルレイアウトに対する BMP の整合性、ラベル分布の妥当性——が実行されます。実際の問題が見つかった場合はゼロ以外の終了コードで終了します。
 * ✂️ **学習・検証・テストの分割:** `generate --split train=0.8,val=0.1,test=0.1` は、`train.txt`、`val.txt`、`test.txt`、YOLO 学習用の `data.yaml`、`splits.json` も書き出します。シーンがどの部分に入るかはシードとシーン番号だけで決まり、各シーンはちょうど一つの部分に入り、`verify` がそれを確認します。`--split` を付けなければ何も変わりません。
+* 🗂️ **Ultralytics 構造：** `generate --layout ultralytics --split train=0.8,val=0.1,test=0.1` は `images/<パート>/`、`labels/<パート>/`、`annotations/instances_<パート>.json`、そしてフォルダーを指定する `data.yaml` を書き出します。YOLO の学習が想定する構造で、シーンはフラット構造と同じバイト列であり、`verify` は両方を読めます。
+* 📷 **リアリズム効果（既定でオフ）：** `--realism-config FILE` はテクスチャ、不均一な照明、小さな回転と遠近（ボックスも画像と一緒に動きます）、ぼかし、センサーノイズを、すべてファイルとシーンのシードから追加します。カメラの安価な近似であり、実モデルへの効果は測定していません。`calibration --out DIR` はモデルの量子化用に、ラベルなしの PNG 画像セットを書き出します。
 
 ## 🧩 HYDRA-UMC での役割
 
@@ -126,7 +128,7 @@ Python 3.10 以上が必要です。
 
 ## 🧪 テスト
 
-`python -m pytest -q tests` で自動テスト 101 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
+`python -m pytest -q tests` で自動テスト 136 件を実行します。 ハードウェアも、このマシンの外にあるものも必要ありません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 

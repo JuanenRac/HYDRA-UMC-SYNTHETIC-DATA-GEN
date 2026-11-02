@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-101%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versione | `0.1.2` |
 | Maturità | Consolidato |
-| Test | 101 (`python -m pytest -q tests`) |
+| Test | 136 (`python -m pytest -q tests`) |
 | Tecnologia | Python / procedural scene generation / YOLO/COCO annotation export |
 | Destinazione | Il PC di chi lo usa |
 | Su hardware reale | Non applicabile: nulla qui gira su hardware |
@@ -51,7 +51,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟢 | Completo per il suo scopo e stabile; la verifica di onestà qui sopra elenca i limiti noti |
-| Test | 🟢 | 101 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 136 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🟢 | Non applicabile: nulla qui gira su hardware |
 | Distribuzione | 🟠 | Pubblicato come release; l'installazione su una macchina pulita è documentata ma non registrata |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
@@ -69,6 +69,8 @@ Risolve il problema del «cold start» per i nuovi componenti industriali o i ti
 * 🛠️ **Iniezione di difetti (v0):** Sovrapposizione rettangolare reale e casuale per componente, con probabilità configurabile. *(implementato come una semplice sovrapposizione reale - vere forme di graffio/parte mancante/ponte di saldatura sono pianificate)*
 * 📋 **Manifesto del dataset e validazione (v0):** Ogni esecuzione di `generate` scrive un vero `manifest.json` (flag di seed riproducibile, parametri di generazione, e un vero checksum sha256 per immagine) ed esegue una vera validazione post-generazione - limiti di scena, integrità BMP rispetto al layout di file reale noto, e sanità della distribuzione delle etichette - uscendo con codice diverso da zero se viene trovato un problema reale.
 * ✂️ **Suddivisione in addestramento, validazione e test:** `generate --split train=0.8,val=0.1,test=0.1` scrive anche `train.txt`, `val.txt` e `test.txt`, un `data.yaml` per i trainer YOLO e `splits.json`. La parte di una scena dipende solo dal seed e dall'indice della scena, ogni scena sta in una sola parte e `verify` lo controlla. Senza `--split` non cambia nulla.
+* 🗂️ **Struttura Ultralytics:** `generate --layout ultralytics --split train=0.8,val=0.1,test=0.1` scrive `images/<parte>/`, `labels/<parte>/`, `annotations/instances_<parte>.json` e un `data.yaml` che nomina le cartelle, la struttura che si aspetta un addestratore YOLO; le scene sono gli stessi byte della struttura piatta, e `verify` legge entrambe.
+* 📷 **Effetti di realismo (spenti di default):** `--realism-config FILE` aggiunge texture, luce irregolare, una piccola rotazione e prospettiva (i riquadri si muovono con l'immagine), sfocatura e rumore del sensore, tutto dal file e dal seme della scena; un'approssimazione economica di una telecamera il cui effetto su un modello reale non è stato misurato. `calibration --out DIR` scrive un insieme di immagini PNG, senza etichette, per la quantizzazione di un modello.
 
 ## 🧩 Ruolo in HYDRA-UMC
 
@@ -117,7 +119,7 @@ Richiede Python 3.10 o successivo.
 
 ## 🧪 Test
 
-101 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
+136 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
 
 La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
 

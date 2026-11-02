@@ -301,6 +301,30 @@ $ echo $?
 2
 ```
 
+## Layout, realism and calibration set
+
+`generate --layout flat|ultralytics` (default `flat`). `ultralytics` needs `--split` with a `val` part greater than 0 and writes `images/<part>/`, `labels/<part>/` (with `--format yolo` or `both`),
+`annotations/instances_<part>.json` (with `--format coco` or `both`) and a `data.yaml` that names `images/train`, `images/val` and, when asked for, `images/test`; it writes no `train.txt`/`val.txt`/`test.txt`. The scenes
+and their checksums are those of the flat layout. `manifest.json` then has `"layout": "ultralytics"` and a `"split"` in every scene, and `verify --out DIR` checks the layout it finds.
+
+`generate --realism-config FILE` (and `calibration --realism-config FILE`) reads the effects from a JSON file; nothing is on unless it says `"enabled": true`:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `texture` | `amplitude` 0, `cell` 12 | Smooth value noise added under everything: amplitude in grey levels (0 to 60), size of a cell in pixels (2 to 64). |
+| `illumination` | `strength` 0 | A brighter and a darker side, in a random direction (0 to 0.8). |
+| `rotation` | `max_degrees` 0 | The whole image is turned by a random angle up to this (0 to 45). |
+| `perspective` | `max_shift_fraction` 0 | Each corner moves by a random amount up to this share of the short side (0 to 0.3). |
+| `blur` | `max_radius` 0 | A box blur of random radius from 0 up to this (0 to 8). |
+| `noise` | `sigma` 0 | Gaussian noise per channel, in grey levels (0 to 40). |
+| `min_visibility` | `0.3` | A box left less than this share visible after the rotation and the perspective is dropped. |
+| `max_pixels` | `1048576` | Larger images are refused (the effects work pixel by pixel in Python). |
+
+The boxes move with the image (the box of the four corners of each box, clipped to the image). The effects have their own generator, seeded from the seed of the scene, so the same seed gives the same bytes; the settings are recorded in the manifest.
+
+`calibration --out DIR [--count N] [--width W] [--height H] [--components N] [--defect-rate R] [--seed S] [--jobs N] [--realism-config FILE]` writes N PNG images (256 by default, 1 to 2000) at the size of the model input and a
+`calibration.json` (purpose, seed, size, settings and the SHA-256 of every image); the folder must be empty or new. Exit code `2` for a bound that is not respected.
+
 ## Exit codes
 
 | Code | Meaning |

@@ -171,13 +171,16 @@ def validate_dataset(
     *,
     expected_labels: tuple[str, ...],
     defect_rate: float,
+    image_parts: dict[str, str] | None = None,
 ) -> list[ValidationIssue]:
     """Runs every real check above across the whole dataset - the single
-    entry point `main.py`'s `generate` subcommand calls after rendering."""
+    entry point `main.py`'s `generate` subcommand calls after rendering.
+    `image_parts` (image name -> part) says the images sit in `images_dir/<part>/` (the Ultralytics layout)."""
     issues: list[ValidationIssue] = []
     for image_name, scene in dataset.scenes:
         issues.extend(validate_scene_bounds(image_name, scene))
         check = validate_png_integrity if image_name.endswith(".png") else validate_bmp_integrity
-        issues.extend(check(image_name, images_dir / image_name, scene.width, scene.height))
+        folder = images_dir / image_parts[image_name] if image_parts else images_dir
+        issues.extend(check(image_name, folder / image_name, scene.width, scene.height))
     issues.extend(validate_label_distribution(dataset, expected_labels, defect_rate))
     return issues

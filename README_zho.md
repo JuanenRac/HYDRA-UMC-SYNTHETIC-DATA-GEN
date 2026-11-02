@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-101%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.1.2` |
 | 成熟度 | 成熟 |
-| 测试 | 101 (`python -m pytest -q tests`) |
+| 测试 | 136 (`python -m pytest -q tests`) |
 | 技术栈 | Python / procedural scene generation / YOLO/COCO annotation export |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 不适用：这里的内容不在硬件上运行 |
@@ -51,7 +51,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟢 | 就其用途而言已完整且稳定；上面的诚实性检查列出了已知限制 |
-| 测试 | 🟢 | 101 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 136 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🟢 | 不适用：这里的内容不在硬件上运行 |
 | 部署 | 🟠 | 已作为发布版本公开；在干净机器上安装有文档，但没有记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
@@ -75,6 +75,8 @@ HYDRA-UMC-TWIN 自身真正的物理/渲染引擎存在即可实现(今天真正
 * 🛠️ **缺陷注入（v0）：** 每个组件真实的、随机的矩形叠加，概率可配置。*（已实现为简单的真实叠加——真实的划痕/缺失部件/焊桥形状计划中）*
 * 📋 **数据集清单与验证（v0）：** 每次 `generate` 运行都会写入一个真实的 `manifest.json`（可复现种子标志、生成参数，以及每张图像真实的 sha256 校验和），并运行真实的生成后验证——场景边界、针对已知真实文件布局的 BMP 完整性、以及标签分布的合理性——若发现任何真实问题，则以非零退出码退出。
 * ✂️ **训练、验证和测试划分:** `generate --split train=0.8,val=0.1,test=0.1` 还会写出 `train.txt`、`val.txt`、`test.txt`、供 YOLO 训练器使用的 `data.yaml` 以及 `splits.json`。场景属于哪一部分只取决于种子和场景序号，每个场景恰好属于一部分，`verify` 会检查这一点。不加 `--split` 则一切照旧。
+* 🗂️ **Ultralytics 结构：** `generate --layout ultralytics --split train=0.8,val=0.1,test=0.1` 会写出 `images/<部分>/`、`labels/<部分>/`、`annotations/instances_<部分>.json` 和一个指明这些文件夹的 `data.yaml`，这是 YOLO 训练器所期望的结构；场景与扁平结构的字节完全相同，`verify` 两种结构都能读取。
+* 📷 **真实感效果（默认关闭）：** `--realism-config FILE` 会加入纹理、不均匀光照、小幅旋转和透视（框随图像一起移动）、模糊和传感器噪声，全部来自该文件和场景的种子；这是对相机的廉价近似，对真实模型的效果尚未测量。`calibration --out DIR` 会写出一组无标签的 PNG 图像，用于模型量化。
 
 ## 🧩 在 HYDRA-UMC 中的角色
 
@@ -123,7 +125,7 @@ flowchart LR
 
 ## 🧪 测试
 
-运行 `python -m pytest -q tests` 会执行 101 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
+运行 `python -m pytest -q tests` 会执行 136 个自动测试。 不需要硬件，也不需要这台机器以外的任何东西。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 

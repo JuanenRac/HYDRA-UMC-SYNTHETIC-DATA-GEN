@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 
 from .manifest import classes_hash
-from .split import check_splits
+from .split import LAYOUTS, SPLIT_NAMES, check_splits
 from .validate import ValidationIssue
 
 _SLACK = 1e-6  # YOLO coordinates are written with six decimals
@@ -146,24 +146,51 @@ def verify_output(out_dir: Path) -> list[ValidationIssue]:
         for extra in sorted(p.name for p in images_dir.iterdir() if p.is_file() and p.name not in listed):
             issues.append(_issue("unexpected_file", f"images/{extra} is not in the manifest"))
 
+    layout = manifest.get("layout", "flat")
+    if layout not in LAYOUTS:
+        issues.append(_issue("manifest_mismatch", f"the layout {layout!r} of the manifest is not one of {list(LAYOUTS)}"))
+        layout = "flat"
+    ultralytics = layout == "ultralytics"
+    parts = sorted({str(scene.get("split")) for scene in scenes if isinstance(scene, dict) and scene.get("split")})
+    if ultralytics:
+        for scene in scenes:
+            if isinstance(scene, dict) and scene.get("split") not in SPLIT_NAMES:
+                issues.append(_issue("manifest_mismatch", f"{scene.get('image')}: the Ultralytics layout needs a split (train, val or test) for every scene"))
+        for part in parts:
+            sub = images_dir / part
+            if sub.is_dir():
+                for extra in sorted(p.name for p in sub.iterdir() if p.is_file() and p.name not in {str(s.get("image")) for s in scenes if isinstance(s, dict) and s.get("split") == part}):
+                    issues.append(_issue("unexpected_file", f"images/{part}/{extra} is not in the manifest"))
+        for extra in sorted(p.name for p in images_dir.iterdir() if p.is_file()) if images_dir.is_dir() else []:
+            issues.append(_issue("unexpected_file", f"images/{extra} sits outside the folders of the parts"))
+        if not (out_dir / "data.yaml").is_file():
+            issues.append(_issue("split_mismatch", "data.yaml is missing"))
+
     coco_counts: dict[str, int] = {}
     if fmt in ("coco", "both"):
-        coco_counts = _check_coco(out_dir / "annotations.json", classes, issues)
+        if ultralytics:
+            for part in parts:
+                for name, count in _check_coco(out_dir / "annotations" / f"instances_{part}.json", classes, issues).items():
+                    coco_counts[name] = coco_counts.get(name, 0) + count
+        else:
+            coco_counts = _check_coco(out_dir / "annotations.json", classes, issues)
 
     labels_dir = out_dir / "labels"
     for scene in scenes:
         if not isinstance(scene, dict):
             continue
         name = str(scene.get("image"))
-        image_path = images_dir / name
+        part = str(scene.get("split")) if ultralytics else ""
+        image_path = (images_dir / part / name) if ultralytics else (images_dir / name)
+        label_path = (labels_dir / part / f"{Path(name).stem}.txt") if ultralytics else (labels_dir / f"{Path(name).stem}.txt")
         if not image_path.is_file():
-            issues.append(_issue("missing_file", f"{name}: image listed in the manifest is not in images/"))
+            issues.append(_issue("missing_file", f"{name}: image listed in the manifest is not in images/{part + '/' if part else ''}"))
         else:
             if hashlib.sha256(image_path.read_bytes()).hexdigest() != scene.get("sha256"):
                 issues.append(_issue("checksum_mismatch", f"{name}: the image is not the one the manifest checksummed"))
         expected = scene.get("num_components")
         if fmt in ("yolo", "both"):
-            ids = _check_yolo_label(Path(name).stem, labels_dir / f"{Path(name).stem}.txt", len(classes) or None, issues)
+            ids = _check_yolo_label(Path(name).stem, label_path, len(classes) or None, issues)
             if expected is not None and len(ids) != expected:
                 issues.append(_issue("count_mismatch", f"{name}: {len(ids)} YOLO line(s), the manifest says {expected} component(s)"))
             if classes:
@@ -176,9 +203,15 @@ def verify_output(out_dir: Path) -> list[ValidationIssue]:
         if fmt in ("coco", "both") and expected is not None and coco_counts.get(name, 0) != expected:
             issues.append(_issue("count_mismatch", f"{name}: {coco_counts.get(name, 0)} COCO annotation(s), the manifest says {expected} component(s)"))
     if labels_dir.is_dir():
-        stems = {Path(str(scene.get("image"))).stem for scene in scenes if isinstance(scene, dict)}
-        for extra in sorted(p.name for p in labels_dir.glob("*.txt") if p.stem not in stems):
-            issues.append(_issue("unexpected_file", f"labels/{extra} belongs to no scene of the manifest"))
+        if ultralytics:
+            for part in parts:
+                stems = {Path(str(s.get("image"))).stem for s in scenes if isinstance(s, dict) and s.get("split") == part}
+                for extra in sorted(p.name for p in (labels_dir / part).glob("*.txt") if p.stem not in stems):
+                    issues.append(_issue("unexpected_file", f"labels/{part}/{extra} belongs to no scene of that part"))
+        else:
+            stems = {Path(str(scene.get("image"))).stem for scene in scenes if isinstance(scene, dict)}
+            for extra in sorted(p.name for p in labels_dir.glob("*.txt") if p.stem not in stems):
+                issues.append(_issue("unexpected_file", f"labels/{extra} belongs to no scene of the manifest"))
     for problem in check_splits(out_dir, {str(name) for name in listed}):
         issues.append(_issue("split_mismatch", problem))
     return issues

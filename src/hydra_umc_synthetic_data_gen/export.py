@@ -43,8 +43,9 @@ def class_names(dataset: Dataset) -> list[str]:
     return list(FIXED_CLASSES) + sorted(seen - set(FIXED_CLASSES))
 
 
-def export_yolo(dataset: Dataset, out_dir: Path) -> None:
-    """Write real YOLO-format labels: one `.txt` per image plus `classes.txt`."""
+def export_yolo(dataset: Dataset, out_dir: Path, split_of: dict[str, str] | None = None) -> None:
+    """Write real YOLO-format labels: one `.txt` per image plus `classes.txt`. With `split_of` (image name -> part) the labels go in `labels/<part>/`, the
+    folders of the Ultralytics layout; without it they are all in `labels/`."""
     labels = class_names(dataset)
     class_index = {name: index for index, name in enumerate(labels)}
 
@@ -62,7 +63,9 @@ def export_yolo(dataset: Dataset, out_dir: Path) -> None:
             lines.append(f"{class_index[component.label]} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}")
         stem = Path(image_name).stem
         text = "\n".join(lines) + ("\n" if lines else "")
-        _write_lf(labels_dir / f"{stem}.txt", text)
+        target = labels_dir / split_of[image_name] if split_of else labels_dir
+        target.mkdir(parents=True, exist_ok=True)
+        _write_lf(target / f"{stem}.txt", text)
 
 
 def export_coco(dataset: Dataset, out_path: Path) -> None:
@@ -94,3 +97,10 @@ def export_coco(dataset: Dataset, out_path: Path) -> None:
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     _write_lf(out_path, json.dumps(payload, indent=2))
+
+
+def export_coco_by_split(dataset: Dataset, out_dir: Path, split_of: dict[str, str]) -> None:
+    """The COCO annotations of the Ultralytics layout: one file per part, `annotations/instances_<part>.json`, with the same categories in each."""
+    for part in sorted(set(split_of.values())):
+        scenes = tuple((name, scene) for name, scene in dataset.scenes if split_of[name] == part)
+        export_coco(Dataset(scenes=scenes), out_dir / "annotations" / f"instances_{part}.json")

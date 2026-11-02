@@ -19,6 +19,7 @@ from pathlib import Path
 
 SPLIT_NAMES = ("train", "val", "test")
 SPLIT_FILES = ("splits.json", "data.yaml", "train.txt", "val.txt", "test.txt")
+LAYOUTS = ("flat", "ultralytics")
 
 
 def parse_split(spec: str) -> dict[str, float]:
@@ -69,20 +70,29 @@ def assign_splits(count: int, base_seed: int, fractions: dict[str, float]) -> di
     return parts
 
 
-def write_splits(out_dir: Path, image_names: list[str], parts: dict[str, list[int]], class_list: list[str]) -> None:
-    """Write `train.txt`/`val.txt`/`test.txt` (paths relative to the file, `./images/...`), `data.yaml` and `splits.json`."""
+def split_names(image_names: list[str], parts: dict[str, list[int]]) -> dict[str, str]:
+    """Image name -> the part it belongs to."""
+    return {image_names[i]: name for name, indexes in parts.items() for i in indexes}
+
+
+def write_splits(out_dir: Path, image_names: list[str], parts: dict[str, list[int]], class_list: list[str], layout: str = "flat") -> None:
+    """Write `data.yaml` and `splits.json`; in the flat layout also `train.txt`/`val.txt`/`test.txt` (paths relative to the file, `./images/...`), in the
+    Ultralytics layout the folders `images/<part>` and `labels/<part>` are the lists and `data.yaml` names them."""
     def write(path: Path, text: str) -> None:
         with open(path, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
 
-    for name in SPLIT_NAMES:
-        if name in parts:
-            write(out_dir / f"{name}.txt", "".join(f"./images/{image_names[i]}\n" for i in parts[name]))
-    yaml = ["path: .", "train: train.txt"]
+    ultralytics = layout == "ultralytics"
+    if not ultralytics:
+        for name in SPLIT_NAMES:
+            if name in parts:
+                write(out_dir / f"{name}.txt", "".join(f"./images/{image_names[i]}\n" for i in parts[name]))
+    source = (lambda n: f"images/{n}") if ultralytics else (lambda n: f"{n}.txt")
+    yaml = ["path: .", f"train: {source('train')}"]
     if "val" in parts:
-        yaml.append("val: val.txt")
+        yaml.append(f"val: {source('val')}")
     if "test" in parts:
-        yaml.append("test: test.txt")
+        yaml.append(f"test: {source('test')}")
     yaml.append(f"nc: {len(class_list)}")
     yaml.append("names:")
     yaml.extend(f"  {i}: {json.dumps(n)}" for i, n in enumerate(class_list))

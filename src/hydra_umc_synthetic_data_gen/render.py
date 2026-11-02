@@ -64,10 +64,15 @@ def _paint(scene: Scene) -> list[bytearray]:
     return pixels
 
 
-def render_bmp(scene: Scene, path: Path) -> None:
-    """Render `scene` to a real BMP file at `path`."""
+def paint_scene(scene: Scene) -> list[bytearray]:
+    """The scene as one `bytearray` of BGR bytes per row, top row first (what `render_bmp` and `render_png` write)."""
+    return _paint(scene)
+
+
+def render_bmp(scene: Scene, path: Path, pixels: list[bytearray] | None = None) -> None:
+    """Render `scene` to a real BMP file at `path`. `pixels` (the rows of `paint_scene`, possibly after realism.py changed them) replace the painting."""
     width, height = scene.width, scene.height
-    pixels = _paint(scene)
+    pixels = _paint(scene) if pixels is None else pixels
     row_size = _row_size(width)
     pixel_data_size = row_size * height
     file_size = 14 + 40 + pixel_data_size
@@ -92,13 +97,13 @@ def _png_chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
 
-def render_png(scene: Scene, path: Path) -> None:
+def render_png(scene: Scene, path: Path, pixels: list[bytearray] | None = None) -> None:
     """Render `scene` to a real 8-bit RGB PNG at `path` (stdlib only: zlib for the pixels, no Pillow).
 
     The same painting as `render_bmp`, one filter-0 scanline per row; the bytes depend only on the scene."""
     width, height = scene.width, scene.height
     raw = bytearray()
-    for row in _paint(scene):
+    for row in (_paint(scene) if pixels is None else pixels):
         rgb = bytearray(len(row))
         rgb[0::3] = row[2::3]
         rgb[1::3] = row[1::3]

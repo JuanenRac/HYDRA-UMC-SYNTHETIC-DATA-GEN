@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-101%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-136%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.2` |
 | Maturity | Established |
-| Tests | 101 (`python -m pytest -q tests`) |
+| Tests | 136 (`python -m pytest -q tests`) |
 | Stack | Python / procedural scene generation / YOLO/COCO annotation export |
 | Target | The PC of the person using it |
 | On real hardware | Not applicable: nothing here runs on hardware |
@@ -51,7 +51,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟢 | Complete for its purpose and stable; the honesty check above lists the known limits |
-| Tests | 🟢 | 101 automated tests, run on every change |
+| Tests | 🟢 | 136 automated tests, run on every change |
 | Real hardware | 🟢 | Not applicable: nothing here runs on hardware |
 | Deployment | 🟠 | Published as a release; installing it on a clean machine is documented but not recorded |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
@@ -69,6 +69,8 @@ It solves the "cold start" problem for new industrial components or rare defect 
 * 🛠️ **Defect Injection (v0):** Real, randomized defect overlay per component, at a configurable probability - either a solid rectangle, or a real Bresenham-line scratch with randomized per-point width/opacity. *(implemented - missing-part/solder-bridge shapes are still planned)*
 * 📋 **Dataset Manifest & Validation (v0):** Every `generate` run writes a real `manifest.json` (reproducible-seed flag, generation parameters, and a per-image sha256 checksum) and runs real post-generation validation - scene-bounds checking, BMP-integrity checking against the exact known-good file layout, and label-distribution sanity - exiting non-zero if any real issue is found.
 * ✂️ **Train, validation and test split:** `generate --split train=0.8,val=0.1,test=0.1` also writes `train.txt`, `val.txt` and `test.txt`, a `data.yaml` for YOLO trainers and `splits.json`. The part of a scene depends only on the seed and the scene index, each scene is in exactly one part, and `verify` checks it. Without `--split` nothing changes.
+* 🗂️ **Ultralytics layout:** `generate --layout ultralytics --split train=0.8,val=0.1,test=0.1` writes `images/<part>/`, `labels/<part>/`, `annotations/instances_<part>.json` and a `data.yaml` that names the folders, the structure a YOLO trainer expects; the scenes are the same bytes as in the flat layout, and `verify` reads both.
+* 📷 **Realism effects (off by default):** `--realism-config FILE` adds a texture, uneven light, a small rotation and perspective (the boxes move with the image), blur and sensor noise, all from the file and from the seed of the scene; a cheap approximation of a camera whose effect on a real model has not been measured. `calibration --out DIR` writes a set of PNG images, without labels, for the quantization of a model.
 
 ## 🧩 Role in HYDRA-UMC
 
@@ -117,7 +119,7 @@ Requires Python 3.10 or newer.
 
 ## 🧪 Testing
 
-101 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
+136 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
