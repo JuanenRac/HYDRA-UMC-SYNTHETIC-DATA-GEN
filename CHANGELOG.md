@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.4] - Classes taken from a model registry, scenes drawn from a catalogue of STL and URDF parts and datasets for visual servoing and for safety zones
+
 - **The classes of a registered model (`generate --classes-from REGISTRY --model NAME [--model-version X.Y.Z]`).** The dataset gets exactly the classes of that entry of the registry of HYDRA-UMC-DETECTION-HEF, in its order (the class id is the position), and the size of its input unless `--width` or `--height` say otherwise; a model without a `defect` class draws no defect. Without the options nothing changes. The manifest records the model name, version, input size and classes, never a path.
 
 - **Outlines of real parts (`generate --catalog FILE`).** A catalogue of STL (binary or ASCII) and URDF files (box, cylinder, sphere and mesh visuals) next to a JSON file gives each object the outline of its part seen from above, at a random turn and size, instead of a rectangle; the box is the box of the pixels really painted. The files must sit inside the folder of the catalogue, a URDF with a DOCTYPE or an entity is refused and the manifest keeps only the labels and the SHA-256 of the files.
