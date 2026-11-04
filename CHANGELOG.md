@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Assemblies of several URDF links (`"urdf_joints": "zero"` in the catalogue).** With the option each link of a URDF part is placed by the chain of joint origins from the root link, every joint at position zero, so an assembly is outlined as it stands at rest; a joint that names an unknown link, a link with two parents or a loop is refused. The default `"ignore"` keeps every link at the origin, so existing catalogues give the same outlines. 6 tests.
+
 - **Concave outlines and COCO segmentation for catalogue parts.** A catalogue with `"silhouette": "concave"` keeps the triangles of its STL parts (up to `concave_max_triangles`, default 20000) and draws each part with its real outer outline seen from above, notches and arms included, instead of the convex outline (holes inside a part are still not kept, URDF parts stay convex). The COCO file now carries a `segmentation` polygon, clipped to the image, and the painted area for every object drawn with an outline; `verify` checks them. Without the option nothing changes. 8 tests.
 
 ## [0.1.4] - Classes taken from a model registry, scenes drawn from a catalogue of STL and URDF parts and datasets for visual servoing and for safety zones

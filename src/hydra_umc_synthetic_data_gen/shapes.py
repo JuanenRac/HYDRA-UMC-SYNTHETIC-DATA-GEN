@@ -13,8 +13,9 @@ A catalogue is a JSON file next to the part files:
 
 `unit_scale` (default 0.001: the files are in millimetres) turns the units of the files into metres; a part can override it with
 `scale`. A part file must sit inside the folder of the catalogue (no absolute path, no `..`). An STL is read in its binary or ASCII form.
-A URDF contributes the `visual` geometry of its links (mesh, box, cylinder, sphere) at the origin of each visual; joints are ignored, so
-a catalogue part is a single rigid piece. A URDF that declares a DOCTYPE or an entity is refused, and so is a mesh through `package://`.
+A URDF contributes the `visual` geometry of its links (mesh, box, cylinder, sphere) at the origin of each visual. By default joints are ignored (every link sits at the origin of the part); with
+`"urdf_joints": "zero"` in the catalogue each link is placed by the chain of joint origins from the root link, with every joint at position zero,
+so an assembly of several links is drawn as it stands at rest. A catalogue part is a single rigid piece either way. A URDF that declares a DOCTYPE or an entity is refused, and so is a mesh through `package://`.
 
 The silhouette of a part is a convex approximation: the part is reduced to the points that stick out furthest in 128 directions (real
 vertices of the file), and the outline of their projection is the convex hull. A part with a hole or a concavity is drawn without it, which
@@ -235,8 +236,47 @@ def _sphere_vertices(radius: float) -> list[Vec3]:
     return pts
 
 
-def parse_urdf(data: bytes, base_dir: Path, root_dir: Path, label: str, max_triangles: int = MAX_TRIANGLES) -> list[Vec3]:
-    """The vertices of the visual geometry of a URDF, each at the origin of its visual (joints are ignored)."""
+def _compose(parent: tuple[list[list[float]], Vec3], child: tuple[list[list[float]], Vec3]) -> tuple[list[list[float]], Vec3]:
+    """The pose `child` expressed in the frame of `parent`'s parent: rotation and translation of two chained transforms."""
+    (rp, tp), (rc, tc) = parent, child
+    rot = [[sum(rp[i][k] * rc[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+    moved = rotate(rp, tc)
+    return rot, (moved[0] + tp[0], moved[1] + tp[1], moved[2] + tp[2])
+
+
+def _link_poses(root: ET.Element, label: str) -> dict[str, tuple[list[list[float]], Vec3]]:
+    """The pose of every link with all joints at position zero: the chain of joint origins from the root link (the link that is no child).
+    A link that cannot be reached from the root (or a loop) is refused; a joint with a missing link or a second parent is refused."""
+    names = [link.get("name", "") for link in root.findall("link")]
+    edges: dict[str, list[tuple[str, tuple[list[list[float]], Vec3]]]] = {}
+    children: set[str] = set()
+    for joint in root.findall("joint"):
+        parent_el, child_el = joint.find("parent"), joint.find("child")
+        parent = parent_el.get("link", "") if parent_el is not None else ""
+        child = child_el.get("link", "") if child_el is not None else ""
+        if parent not in names or child not in names or child in children or parent == child:
+            raise CatalogError(f"{label}: a joint names an unknown link, a link with two parents or itself")
+        children.add(child)
+        origin = joint.find("origin")
+        xyz = _floats(origin.get("xyz") if origin is not None else None, 3, 0.0, label)
+        rpy = _floats(origin.get("rpy") if origin is not None else None, 3, 0.0, label)
+        edges.setdefault(parent, []).append((child, (_rotation_rpy(*rpy), (xyz[0], xyz[1], xyz[2]))))
+    identity: tuple[list[list[float]], Vec3] = ([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], (0.0, 0.0, 0.0))
+    poses: dict[str, tuple[list[list[float]], Vec3]] = {}
+    stack = [(name, identity) for name in names if name not in children]
+    while stack:
+        name, pose = stack.pop()
+        poses[name] = pose
+        for child, local in edges.get(name, ()):
+            stack.append((child, _compose(pose, local)))
+    if len(poses) != len(names):
+        raise CatalogError(f"{label}: the joints of the URDF do not form a tree from one root link")
+    return poses
+
+
+def parse_urdf(data: bytes, base_dir: Path, root_dir: Path, label: str, max_triangles: int = MAX_TRIANGLES, joints: str = "ignore") -> list[Vec3]:
+    """The vertices of the visual geometry of a URDF, each at the origin of its visual; `joints="zero"` places every link by the chain of
+    joint origins (all joints at position zero), `"ignore"` (the default) leaves every link at the origin."""
     head = data[:4096].lower()
     if b"<!doctype" in head or b"<!entity" in data.lower():
         raise CatalogError(f"{label}: a URDF with a DOCTYPE or an entity is refused")
@@ -245,7 +285,9 @@ def parse_urdf(data: bytes, base_dir: Path, root_dir: Path, label: str, max_tria
     except ET.ParseError as error:
         raise CatalogError(f"{label}: not a valid URDF (XML)") from error
     vertices: list[Vec3] = []
-    for visual in root.iter("visual"):
+    poses = _link_poses(root, label) if joints == "zero" else {}
+    visuals = [(link.get("name", ""), v) for link in root.iter("link") for v in link.findall("visual")] if poses else [("", v) for v in root.iter("visual")]
+    for link_name, visual in visuals:
         geometry = visual.find("geometry")
         if geometry is None or len(geometry) != 1:
             continue
@@ -269,9 +311,11 @@ def parse_urdf(data: bytes, base_dir: Path, root_dir: Path, label: str, max_tria
         xyz = _floats(origin.get("xyz") if origin is not None else None, 3, 0.0, label)
         rpy = _floats(origin.get("rpy") if origin is not None else None, 3, 0.0, label)
         matrix = _rotation_rpy(*rpy)
+        link_rot, link_move = poses.get(link_name, ([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], (0.0, 0.0, 0.0)))
         for p in points:
             r = rotate(matrix, p)
-            vertices.append((r[0] + xyz[0], r[1] + xyz[1], r[2] + xyz[2]))
+            w = rotate(link_rot, (r[0] + xyz[0], r[1] + xyz[1], r[2] + xyz[2]))
+            vertices.append((w[0] + link_move[0], w[1] + link_move[1], w[2] + link_move[2]))
     if not vertices:
         raise CatalogError(f"{label}: no visual geometry found")
     return vertices
@@ -349,7 +393,7 @@ def load_catalog(path: str | Path) -> Catalog:
         raise CatalogError(f"cannot read the catalogue ({error.__class__.__name__})") from error
     if not isinstance(raw, dict) or not isinstance(raw.get("parts"), list) or not raw["parts"]:
         raise CatalogError("the catalogue must be an object with a non-empty list `parts`")
-    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles", "silhouette", "concave_max_triangles"})
+    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles", "silhouette", "concave_max_triangles", "urdf_joints"})
     if unknown:
         raise CatalogError(f"the catalogue has unknown keys: {', '.join(unknown)}")
     unit_scale = raw.get("unit_scale", 0.001)
@@ -361,6 +405,9 @@ def load_catalog(path: str | Path) -> Catalog:
     outline = raw.get("silhouette", "convex")
     if outline not in ("convex", "concave"):
         raise CatalogError('silhouette must be "convex" or "concave"')
+    joints = raw.get("urdf_joints", "ignore")
+    if joints not in ("ignore", "zero"):
+        raise CatalogError('urdf_joints must be "ignore" or "zero"')
     concave_max = raw.get("concave_max_triangles", CONCAVE_MAX_TRIANGLES)
     if isinstance(concave_max, bool) or not isinstance(concave_max, int) or not 1 <= concave_max <= MAX_TRIANGLES:
         raise CatalogError(f"concave_max_triangles must be an integer in 1..{MAX_TRIANGLES}")
@@ -395,7 +442,7 @@ def load_catalog(path: str | Path) -> Catalog:
             if outline == "concave" and len(mesh) <= concave_max:
                 kept = tuple(tuple((x * scale, y * scale, z * scale) for x, y, z in tri) for tri in mesh)  # type: ignore[misc]
         else:
-            vertices = parse_urdf(data, file.parent, root_dir, where, max_triangles)
+            vertices = parse_urdf(data, file.parent, root_dir, where, max_triangles, joints)
         points = support_points(vertices)
         parts.append(Part(label, tuple((x * scale, y * scale, z * scale) for x, y, z in points), hashlib.sha256(data).hexdigest(), kept))
     return Catalog(tuple(parts), float(unit_scale))
