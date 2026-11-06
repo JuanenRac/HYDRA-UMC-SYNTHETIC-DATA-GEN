@@ -8,3 +8,5 @@ __pycache__/
 !.env.example
 build/
 dist/
+# Coverage data written by the test runs
+.coverage
