@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .scene import FIXED_CLASSES, Component, Scene
-from .shapes import polygon_spans
+from .shapes import painted_spans
 
 
 @dataclass(frozen=True)
@@ -73,17 +73,21 @@ def export_yolo(dataset: Dataset, out_dir: Path, split_of: dict[str, str] | None
         _write_lf(target / f"{stem}.txt", text)
 
 
-def _segmentation(component: Component, width: int, height: int) -> tuple[list[float], int] | None:
-    """COCO polygon (x1, y1, x2, y2, ...) of a component painted as a polygon, and its painted area; None for a rectangle."""
+def _segmentation(component: Component, width: int, height: int) -> tuple[list[list[float]], int] | None:
+    """COCO rings (x1, y1, x2, y2, ...) of a component painted as a polygon, the outline first and then its holes, and the area it really
+    paints (the holes taken out); None for a rectangle. A consumer that joins all the rings (pycocotools does) fills the holes again."""
     if component.polygon is None:
         return None
-    area = sum(stop - first for _, first, stop in polygon_spans(component.polygon, width, height))
+    area = sum(stop - first for _, first, stop in painted_spans(component.polygon, component.holes, width, height))
     if area <= 0:
         return None
-    flat: list[float] = []
-    for x, y in component.polygon:
-        flat.extend((float(min(max(x, 0), width)), float(min(max(y, 0), height))))
-    return flat, area
+    rings: list[list[float]] = []
+    for polygon in (component.polygon, *component.holes):
+        flat: list[float] = []
+        for x, y in polygon:
+            flat.extend((float(min(max(x, 0), width)), float(min(max(y, 0), height))))
+        rings.append(flat)
+    return rings, area
 
 
 def export_coco(dataset: Dataset, out_path: Path) -> None:
@@ -109,7 +113,7 @@ def export_coco(dataset: Dataset, out_path: Path) -> None:
             outline = _segmentation(component, scene.width, scene.height)
             if outline is not None:
                 # a part with its own outline: the polygon (clipped to the image) and the number of pixels it really paints
-                annotation["segmentation"] = [outline[0]]
+                annotation["segmentation"] = outline[0]
                 annotation["area"] = outline[1]
             annotations.append(annotation)
             next_annotation_id += 1

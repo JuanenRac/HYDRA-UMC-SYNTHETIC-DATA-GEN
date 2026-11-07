@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Holes inside a catalogue part (`"holes": "keep"` next to `"silhouette": "concave"`).** With the option, the boundary loops of the painted part that turn the other way than the outer one, lie inside it and cover at least four cells of the 64 x 64 grid are kept as holes: they are painted with the background (the part no longer hides what is behind a hole), the COCO `segmentation` lists the outline first and then each hole as a ring, `area` counts only the pixels the part paints, and `verify` accepts the extra rings. Off by default (`"ignore"`): a catalogue without the option gives the same dataset as before. A separate piece inside a hole (an island) is not kept.
+
 ## [0.1.5] - The build test of the repository compiles only on CI or when allowed: for the stacks that compile (rust, go, android, flutter, firmware-c), tools/buildtest.py prints BUILDTEST=SKIPPED with exit status 2 on a plain PC, never a... (and 2 more changes)
 
 - **The build test of the repository compiles only on CI or when allowed:** for the stacks that compile (`rust`, `go`, `android`, `flutter`, `firmware-c`), `tools/build_test.py` prints `BUILD_TEST=SKIPPED` with exit status 2 on a plain PC, never a pass; `ALLOW_LOCAL_BUILD=1` allows it and a CI runner always may. The `python` and `node` stacks are not locked.

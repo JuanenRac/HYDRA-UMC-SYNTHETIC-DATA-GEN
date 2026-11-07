@@ -114,6 +114,33 @@ def spans_box(spans: Sequence[tuple[int, int, int]]) -> tuple[int, int, int, int
     return x0, y0, x1 - x0, y1 - y0 + 1
 
 
+def painted_spans(polygon: Sequence[tuple[int, int]], holes: Sequence[Sequence[tuple[int, int]]], width: int, height: int) -> list[tuple[int, int, int]]:
+    """The spans of `polygon` with the spans of every polygon of `holes` taken out (what a part with holes really paints)."""
+    spans = polygon_spans(polygon, width, height)
+    if not holes:
+        return spans
+    cut: dict[int, list[tuple[int, int]]] = {}
+    for hole in holes:
+        for row, first, stop in polygon_spans(hole, width, height):
+            cut.setdefault(row, []).append((first, stop))
+    out: list[tuple[int, int, int]] = []
+    for row, first, stop in spans:
+        pieces = [(first, stop)]
+        for a, b in sorted(cut.get(row, ())):
+            kept: list[tuple[int, int]] = []
+            for f, s in pieces:
+                if b <= f or a >= s:
+                    kept.append((f, s))
+                    continue
+                if a > f:
+                    kept.append((f, a))
+                if b < s:
+                    kept.append((b, s))
+            pieces = kept
+        out.extend((row, f, s) for f, s in pieces if s > f)
+    return out
+
+
 def fit_polygon(unit_points: Sequence[Point], x: int, y: int, width: int, height: int) -> tuple[tuple[int, int], ...]:
     """The points of a polygon given in a unit box, placed in the box x, y, width, height of the canvas."""
     return tuple((x + round(px * (width - 1)), y + round(py * (height - 1))) for px, py in unit_points)
@@ -361,6 +388,8 @@ class Part:
     source_sha256: str
     # the triangles of an STL part (metres), kept only when the catalogue asks for `concave` outlines; empty otherwise
     triangles: tuple[tuple[Vec3, Vec3, Vec3], ...] = ()
+    # the catalogue asked for `"holes": "keep"`: the holes inside the part are kept in its outline
+    keep_holes: bool = False
 
 
 @dataclass(frozen=True)
@@ -369,6 +398,8 @@ class Silhouette:
 
     points: tuple[Point, ...]
     aspect: float
+    # the holes inside the outline, each a polygon in the same unit box (empty unless the catalogue keeps holes)
+    holes: tuple[tuple[Point, ...], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -393,7 +424,7 @@ def load_catalog(path: str | Path) -> Catalog:
         raise CatalogError(f"cannot read the catalogue ({error.__class__.__name__})") from error
     if not isinstance(raw, dict) or not isinstance(raw.get("parts"), list) or not raw["parts"]:
         raise CatalogError("the catalogue must be an object with a non-empty list `parts`")
-    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles", "silhouette", "concave_max_triangles", "urdf_joints"})
+    unknown = sorted(set(raw) - {"unit_scale", "parts", "max_triangles", "silhouette", "concave_max_triangles", "urdf_joints", "holes"})
     if unknown:
         raise CatalogError(f"the catalogue has unknown keys: {', '.join(unknown)}")
     unit_scale = raw.get("unit_scale", 0.001)
@@ -405,6 +436,11 @@ def load_catalog(path: str | Path) -> Catalog:
     outline = raw.get("silhouette", "convex")
     if outline not in ("convex", "concave"):
         raise CatalogError('silhouette must be "convex" or "concave"')
+    holes = raw.get("holes", "ignore")
+    if holes not in ("ignore", "keep"):
+        raise CatalogError('holes must be "ignore" or "keep"')
+    if holes == "keep" and outline != "concave":
+        raise CatalogError('holes "keep" needs "silhouette": "concave"')
     joints = raw.get("urdf_joints", "ignore")
     if joints not in ("ignore", "zero"):
         raise CatalogError('urdf_joints must be "ignore" or "zero"')
@@ -444,7 +480,7 @@ def load_catalog(path: str | Path) -> Catalog:
         else:
             vertices = parse_urdf(data, file.parent, root_dir, where, max_triangles, joints)
         points = support_points(vertices)
-        parts.append(Part(label, tuple((x * scale, y * scale, z * scale) for x, y, z in points), hashlib.sha256(data).hexdigest(), kept))
+        parts.append(Part(label, tuple((x * scale, y * scale, z * scale) for x, y, z in points), hashlib.sha256(data).hexdigest(), kept, bool(kept) and holes == "keep"))
     return Catalog(tuple(parts), float(unit_scale))
 
 
@@ -480,13 +516,41 @@ def _simplify(points: list[Point], tolerance: float) -> list[Point]:
 
 def raster_outline(triangles: Sequence[tuple[Point, Point, Point]], grid: int = CONCAVE_GRID) -> list[Point]:
     """The outer outline, in a unit box, of the union of 2D `triangles`: they are painted on a grid x grid canvas that spans their box
-    and the boundary of the biggest connected piece is walked and simplified. A hole inside the part is not kept (a stated limit)."""
+    and the boundary of the biggest connected piece is walked and simplified. A hole inside the part is not kept here (see `raster_rings`)."""
+    return raster_rings(triangles, grid, False)[0]
+
+
+# a hole smaller than this many cells of the grid is a speck of the painting, not a hole of the part
+HOLE_MIN_CELLS = 4.0
+
+
+def _signed_area(loop: Sequence[tuple[float, float]]) -> float:
+    n = len(loop)
+    return sum(loop[k][0] * loop[(k + 1) % n][1] - loop[(k + 1) % n][0] * loop[k][1] for k in range(n)) / 2
+
+
+def _inside(point: tuple[float, float], loop: Sequence[tuple[float, float]]) -> bool:
+    """Even-odd test of `point` against the polygon `loop`."""
+    px, py = point
+    inside = False
+    n = len(loop)
+    for k in range(n):
+        x0, y0 = loop[k]
+        x1, y1 = loop[(k + 1) % n]
+        if (y0 > py) != (y1 > py) and px < x0 + (py - y0) * (x1 - x0) / (y1 - y0):
+            inside = not inside
+    return inside
+
+
+def raster_rings(triangles: Sequence[tuple[Point, Point, Point]], grid: int = CONCAVE_GRID, holes: bool = False) -> tuple[list[Point], list[list[Point]]]:
+    """The outer outline (as `raster_outline`) and, when `holes` is true, the outlines of the holes inside it: the boundary loops that turn the
+    other way than the outer one, lie inside it and cover at least HOLE_MIN_CELLS cells. Every ring is in the same unit box."""
     xs = [p[0] for tri in triangles for p in tri]
     ys = [p[1] for tri in triangles for p in tri]
     x0, y0 = min(xs), min(ys)
     w, h = max(xs) - x0, max(ys) - y0
     if w <= 0 or h <= 0:
-        return []
+        return [], []
     cells: set[tuple[int, int]] = set()
     for tri in triangles:
         g = [((p[0] - x0) / w * grid, (p[1] - y0) / h * grid) for p in tri]
@@ -538,14 +602,24 @@ def raster_outline(triangles: Sequence[tuple[Point, Point, Point]], grid: int = 
             loops.append(loop)
 
     def area_of(loop: list[tuple[int, int]]) -> float:
-        n = len(loop)
-        return abs(sum(loop[k][0] * loop[(k + 1) % n][1] - loop[(k + 1) % n][0] * loop[k][1] for k in range(n))) / 2
+        return abs(_signed_area(loop))
 
     if not loops:
-        return []
+        return [], []
     outer = max(loops, key=area_of)
     simple = _simplify([(float(x), float(y)) for x, y in outer], 0.75)
-    return [(px / grid, py / grid) for px, py in simple]
+    rings: list[list[Point]] = []
+    if holes:
+        turn = _signed_area(outer)
+        for loop in loops:
+            if loop is outer or area_of(loop) < HOLE_MIN_CELLS or _signed_area(loop) * turn >= 0:
+                continue
+            if not _inside((float(loop[0][0]) + 0.5 * (loop[1][0] - loop[0][0]), float(loop[0][1]) + 0.5 * (loop[1][1] - loop[0][1])), outer):
+                continue
+            ring = _simplify([(float(x), float(y)) for x, y in loop], 0.75)
+            if len(ring) >= 3:
+                rings.append([(px / grid, py / grid) for px, py in ring])
+    return [(px / grid, py / grid) for px, py in simple], rings
 
 
 def _concave_silhouettes(part: Part, steps: int) -> tuple[Silhouette, ...]:
@@ -554,13 +628,13 @@ def _concave_silhouettes(part: Part, steps: int) -> tuple[Silhouette, ...]:
         angle = 2 * math.pi * k / steps
         c, s = math.cos(angle), math.sin(angle)
         flat = [tuple((x * c - y * s, x * s + y * c) for x, y, _ in tri) for tri in part.triangles]
-        outline = raster_outline(flat)  # type: ignore[arg-type]
+        outline, rings = raster_rings(flat, CONCAVE_GRID, part.keep_holes)  # type: ignore[arg-type]
         if len(outline) < 3:
             continue
         xs = [p[0] for tri in flat for p in tri]
         ys = [p[1] for tri in flat for p in tri]
         w, h = max(xs) - min(xs), max(ys) - min(ys)
-        out.append(Silhouette(tuple(outline), w / h))
+        out.append(Silhouette(tuple(outline), w / h, tuple(tuple(ring) for ring in rings)))
     return tuple(out)
 
 

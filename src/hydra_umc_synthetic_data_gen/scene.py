@@ -19,7 +19,7 @@ import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from .shapes import Silhouette, fit_polygon, polygon_spans, spans_box
+from .shapes import Silhouette, fit_polygon, painted_spans, polygon_spans, spans_box
 
 DEFAULT_LABELS: tuple[str, ...] = ("bolt", "bracket", "gear", "connector")
 DEFECT_LABEL = "defect"
@@ -116,6 +116,8 @@ class Component:
     # The outline of a part from a catalogue (pixels of the canvas, any simple polygon): the object is painted as this shape instead of the
     # whole rectangle, and the rectangle is the box of the pixels it really covers.
     polygon: tuple[tuple[int, int], ...] | None = None
+    # Holes inside that outline (each a polygon of canvas pixels, painted with the background): empty unless the catalogue keeps the holes.
+    holes: tuple[tuple[tuple[int, int], ...], ...] = ()
 
 
 def _scratch_box(scratch: tuple[ScratchPoint, ...], width: int, height: int) -> tuple[int, int, int, int] | None:
@@ -146,7 +148,7 @@ def _painted_cells(component: "Component", width: int, height: int) -> set[tuple
                         cells.add((px, py))
         return cells
     if component.polygon is not None:
-        for row, first, stop in polygon_spans(component.polygon, width, height):
+        for row, first, stop in painted_spans(component.polygon, component.holes, width, height):
             cells.update((px, row) for px in range(first, stop))
         return cells
     for py in range(max(0, component.y), min(height, component.y + component.height)):
@@ -245,7 +247,8 @@ def generate_scene(
             if box is None:
                 continue
             bx, by, bw, bh = box
-            components.append(Component(label=label, x=bx, y=by, width=bw, height=bh, color=color, polygon=polygon))
+            holes = tuple(fit_polygon(ring, x, y, w, h) for ring in shape.holes)
+            components.append(Component(label=label, x=bx, y=by, width=bw, height=bh, color=color, polygon=polygon, holes=holes))
             w, h, x, y = bw, bh, bx, by
         else:
             w = rng.randint(effective_min_size, effective_max_size)
