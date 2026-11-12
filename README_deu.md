@@ -76,6 +76,8 @@ Er löst das "Kaltstart"-Problem für neue industrielle Komponenten oder seltene
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** schreibt kleine Trainingsdatensätze für die Vision-Knoten: zufällige Szenen aus Bauteilen, deren Begrenzungsrahmen aus denselben Koordinaten stammen, mit denen sie gezeichnet wurden, exportiert als YOLO oder COCO zusammen mit einem Manifest, wie der Satz entstand. Heute sind die Szenen flache 2D-Formen; das Rendern über den Digital Twin ist geplant.
 
+> **Plattform:** Wo dieses README CM5 sagt, ist der Pilotprüfstand gemeint, der heute läuft; die Zielplattform von HYDRA-UMC ist ein NVIDIA Jetson Orin NX 16 GB, ein Entwurf, der weder gebaut noch getestet wurde.
+
 ## 🏛️ Architektur
 
 <p align="center">

@@ -76,6 +76,8 @@ It solves the "cold start" problem for new industrial components or rare defect 
 
 **HYDRA-UMC-SYNTHETIC-DATA-GEN** writes small training datasets for the vision nodes: random scenes of components, with the bounding boxes taken from the same coordinates that drew them, exported as YOLO or COCO together with a manifest of how the set was made. Today the scenes are flat 2D shapes; rendering through the Digital Twin is planned.
 
+> **Platform:** where this README says CM5, it means the pilot bench that runs today; the target platform of HYDRA-UMC is an NVIDIA Jetson Orin NX 16 GB, a design that has not been built or tested.
+
 ## 🏛️ Architecture
 
 <p align="center">
