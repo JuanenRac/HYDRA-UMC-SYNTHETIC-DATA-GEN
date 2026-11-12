@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-180%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-192%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.5` |
 | Maturity | Established |
-| Tests | 180 (`python -m pytest -q tests`) |
+| Tests | 192 (`python -m pytest -q tests`) |
 | Stack | Python / procedural scene generation / YOLO/COCO annotation export |
 | Target | The PC of the person using it |
 | On real hardware | Not applicable: nothing here runs on hardware |
@@ -51,7 +51,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟢 | Complete for its purpose and stable; the honesty check above lists the known limits |
-| Tests | 🟢 | 180 automated tests, run on every change |
+| Tests | 🟢 | 192 automated tests, run on every change |
 | Real hardware | 🟢 | Not applicable: nothing here runs on hardware |
 | Deployment | 🟠 | Published as a release; installing it on a clean machine is documented but not recorded |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
@@ -65,7 +65,7 @@ It solves the "cold start" problem for new industrial components or rare defect 
 ### Key Features:
 * 🎲 **Procedural Scenarios (v0):** Real, seeded-deterministic randomization of 2D component placement, size, and color. *(implemented as real 2D placeholder shapes, not yet 3D poses/lighting/textures through HYDRA-UMC-TWIN's engine - see BUILD AND RUN below)*
 * 📸 **Multi-Camera Rendering:** Generates simultaneous views from 8+ virtual cameras. *(planned - needs HYDRA-UMC-TWIN's real rendering engine)*
-* 🏷️ **Automatic Labeling (v0):** Real, pixel-perfect YOLO and COCO annotation export. *(implemented for YOLO/COCO; TFRecord export is planned)*
+* 🏷️ **Automatic Labeling (v0):** Real, pixel-perfect YOLO and COCO annotation export. *(implemented for YOLO, COCO and, with `--tfrecord`, TFRecord)*
 * 🛠️ **Defect Injection (v0):** Real, randomized defect overlay per component, at a configurable probability - either a solid rectangle, or a real Bresenham-line scratch with randomized per-point width/opacity. *(implemented - missing-part/solder-bridge shapes are still planned)*
 * 📋 **Dataset Manifest & Validation (v0):** Every `generate` run writes a real `manifest.json` (reproducible-seed flag, generation parameters, and a per-image sha256 checksum) and runs real post-generation validation - scene-bounds checking, BMP-integrity checking against the exact known-good file layout, and label-distribution sanity - exiting non-zero if any real issue is found.
 * ✂️ **Train, validation and test split:** `generate --split train=0.8,val=0.1,test=0.1` also writes `train.txt`, `val.txt` and `test.txt`, a `data.yaml` for YOLO trainers and `splits.json`. The part of a scene depends only on the seed and the scene index, each scene is in exactly one part, and `verify` checks it. Without `--split` nothing changes.
@@ -123,7 +123,7 @@ Requires Python 3.10 or newer.
 
 ## 🧪 Testing
 
-180 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
+192 automated tests run with `python -m pytest -q tests`. They need no hardware and nothing outside this machine.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
@@ -159,6 +159,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 `--jobs N` renders the scenes in N processes (default 1): every scene has its own random generator seeded from the seed and its index, so the dataset is the same whatever N is. The manifest now records the class list (`classes`) and its hash (`classes_sha256`, the sha256 of `classes.txt`) so whoever registers a model trained on the dataset can check the class order. `verify --out dataset/` reads a dataset folder back: the images against the manifest checksums, the YOLO labels (five fields, a known class id, everything inside [0, 1]), the COCO file (unique ids, boxes inside the image) and the number of labels against the manifest; `generate` runs the same check on its own output. The BMP renderer paints by slice instead of by pixel (the same bytes, much faster on large images). Tested; the check on the DETECTION-HEF side that would compare the hash does not exist yet.
 
 Writes real BMP images to `dataset/images/`, real YOLO labels to `dataset/labels/` + `dataset/classes.txt`, and/or a real `dataset/annotations.json` in COCO format, depending on `--format`. A given `--seed` makes the dataset byte-for-byte reproducible.
+
+`--tfrecord` also writes the images and their boxes as `tf.train.Example` records of the TensorFlow Object Detection API (`tfrecord/all.tfrecord`, or one file per part with `--layout ultralytics`; class ids start at 1). It is written with the standard library alone, so it needs no TensorFlow, and it is off unless the flag is given. Tested by reading the files back and checking every CRC; never loaded by TensorFlow itself.
 
 The arguments are range-checked (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1), and the images of the whole dataset are capped at 4 GiB: a command whose estimated size is over that is refused with exit code 2 before anything is written, so a typo cannot fill the disk of the machine it runs on.
 

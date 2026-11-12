@@ -51,6 +51,7 @@ from .scenarios import (
 from .scene import DEFAULT_LABELS, DEFECT_LABEL, FIXED_CLASSES, Scene, generate_scene
 from .shapes import CatalogError, Catalog, Silhouette, load_catalog, top_silhouettes
 from .split import LAYOUTS, SPLIT_FILES, assign_splits, parse_split, split_names, write_splits
+from .tfrecord import export_tfrecord
 from .validate import validate_dataset
 from .verify import verify_output
 
@@ -274,7 +275,7 @@ def _run_generate(args: argparse.Namespace) -> int:
 
     out_dir = args.out
     images_dir = out_dir / "images"
-    leftovers = [name for name in ("images", "labels", "annotations", "annotations.json", "classes.txt", "manifest.json", "poses.json", "zones.json", *SPLIT_FILES) if (out_dir / name).exists()]
+    leftovers = [name for name in ("images", "labels", "annotations", "annotations.json", "classes.txt", "manifest.json", "poses.json", "zones.json", "tfrecord", *SPLIT_FILES) if (out_dir / name).exists()]
     if leftovers:
         # Generating over an old dataset would leave its files next to the new
         # ones, and a trainer that lists the folder would pick up both.
@@ -319,6 +320,8 @@ def _run_generate(args: argparse.Namespace) -> int:
             export_coco_by_split(dataset, out_dir, image_parts)
         else:
             export_coco(dataset, out_dir / "annotations.json")
+    if args.tfrecord:
+        tfrecords = export_tfrecord(dataset, images_dir, out_dir, image_parts)
 
     issues = validate_dataset(
         dataset, images_dir, expected_labels=expected_labels, defect_rate=args.defect_rate, image_parts=image_parts
@@ -349,6 +352,8 @@ def _run_generate(args: argparse.Namespace) -> int:
     print(f"Generated {args.count} scene(s) -> {images_dir}")
     print(f"Total labeled components (incl. defects): {total_components}")
     print(f"Annotations exported as: {args.format}")
+    if args.tfrecord:
+        print("TFRecord: " + ", ".join(f"{r.path.name}={r.records}" for r in tfrecords))
     print(f"Seed: {base_seed} ({'given' if args.seed is not None else 'drawn at random and recorded in the manifest'})")
     print(f"Manifest written -> {out_dir / 'manifest.json'}")
 
@@ -476,6 +481,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate_parser.add_argument(
         "--format", choices=("yolo", "coco", "both"), default="both", help="Annotation export format (default: both)."
+    )
+    generate_parser.add_argument(
+        "--tfrecord", action="store_true",
+        help="Also write tfrecord/<part>.tfrecord (tfrecord/all.tfrecord without the ultralytics layout): the images and their boxes as tf.train.Example "
+        "records of the TensorFlow Object Detection API, written without TensorFlow. Off by default.",
     )
     generate_parser.add_argument(
         "--image-format", choices=("bmp", "png"), default="bmp",

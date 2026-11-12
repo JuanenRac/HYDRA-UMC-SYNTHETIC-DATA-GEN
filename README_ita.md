@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-180%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-192%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versione | `0.1.5` |
 | Maturità | Consolidato |
-| Test | 180 (`python -m pytest -q tests`) |
+| Test | 192 (`python -m pytest -q tests`) |
 | Tecnologia | Python / procedural scene generation / YOLO/COCO annotation export |
 | Destinazione | Il PC di chi lo usa |
 | Su hardware reale | Non applicabile: nulla qui gira su hardware |
@@ -51,7 +51,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟢 | Completo per il suo scopo e stabile; la verifica di onestà qui sopra elenca i limiti noti |
-| Test | 🟢 | 180 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 192 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🟢 | Non applicabile: nulla qui gira su hardware |
 | Distribuzione | 🟠 | Pubblicato come release; l'installazione su una macchina pulita è documentata ma non registrata |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
@@ -65,7 +65,7 @@ Risolve il problema del «cold start» per i nuovi componenti industriali o i ti
 ### Caratteristiche principali:
 * 🎲 **Scenari procedurali (v0):** Randomizzazione reale e deterministica (con seed) di posizione, dimensione e colore dei componenti 2D. *(implementato come vere forme 2D segnaposto, non ancora pose/illuminazione/texture 3D tramite il motore di HYDRA-UMC-TWIN - vedi BUILD E RUN sotto)*
 * 📸 **Rendering multi-camera:** Genera viste simultanee da oltre 8 telecamere virtuali. *(pianificato - richiede il vero motore di rendering di HYDRA-UMC-TWIN)*
-* 🏷️ **Etichettatura automatica (v0):** Esportazione reale e perfetta al pixel in YOLO e COCO. *(implementato per YOLO/COCO; l'esportazione TFRecord è pianificata)*
+* 🏷️ **Etichettatura automatica (v0):** Esportazione reale e perfetta al pixel in YOLO e COCO. *(implementato per YOLO, COCO e, con `--tfrecord`, TFRecord)*
 * 🛠️ **Iniezione di difetti (v0):** Sovrapposizione rettangolare reale e casuale per componente, con probabilità configurabile. *(implementato come una semplice sovrapposizione reale - vere forme di graffio/parte mancante/ponte di saldatura sono pianificate)*
 * 📋 **Manifesto del dataset e validazione (v0):** Ogni esecuzione di `generate` scrive un vero `manifest.json` (flag di seed riproducibile, parametri di generazione, e un vero checksum sha256 per immagine) ed esegue una vera validazione post-generazione - limiti di scena, integrità BMP rispetto al layout di file reale noto, e sanità della distribuzione delle etichette - uscendo con codice diverso da zero se viene trovato un problema reale.
 * ✂️ **Suddivisione in addestramento, validazione e test:** `generate --split train=0.8,val=0.1,test=0.1` scrive anche `train.txt`, `val.txt` e `test.txt`, un `data.yaml` per i trainer YOLO e `splits.json`. La parte di una scena dipende solo dal seed e dall'indice della scena, ogni scena sta in una sola parte e `verify` lo controlla. Senza `--split` non cambia nulla.
@@ -123,7 +123,7 @@ Richiede Python 3.10 o successivo.
 
 ## 🧪 Test
 
-180 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
+192 test automatici si eseguono con `python -m pytest -q tests`. Non richiedono hardware né nulla al di fuori di questa macchina.
 
 La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
 
@@ -159,6 +159,8 @@ run.bat generate --out dataset\ --count 20 --components 6 --defect-rate 0.3 --se
 `--jobs N` renderizza le scene in N processi (predefinito 1): ogni scena ha il proprio generatore casuale inizializzato dal seme e dal suo indice, quindi il dataset è lo stesso qualunque sia N. Il manifesto ora registra l'elenco delle classi (`classes`) e il suo hash (`classes_sha256`, lo sha256 di `classes.txt`) così chi registra un modello addestrato sul dataset può verificare l'ordine delle classi. `verify --out dataset/` rilegge una cartella di dataset: le immagini contro i checksum del manifesto, le etichette YOLO (cinque campi, un id di classe noto, tutto in [0, 1]), il file COCO (id unici, riquadri dentro l'immagine) e il numero di etichette contro il manifesto; `generate` esegue lo stesso controllo sul proprio output. Il renderer BMP dipinge per fette invece che per pixel (gli stessi byte, molto più veloce sulle immagini grandi). Provato; il controllo lato DETECTION-HEF che confronterebbe l'hash non esiste ancora.
 
 Scrive vere immagini BMP in `dataset/images/`, vere etichette YOLO in `dataset/labels/` + `dataset/classes.txt`, e/o un vero `dataset/annotations.json` in formato COCO, a seconda di `--format`. Un `--seed` dato rende il dataset riproducibile byte per byte.
+
+`--tfrecord` scrive anche le immagini e i loro riquadri come record `tf.train.Example` della API di rilevamento oggetti di TensorFlow (`tfrecord/all.tfrecord`, o un file per parte con `--layout ultralytics`; gli id di classe partono da 1). È scritto con la sola libreria standard, quindi non richiede TensorFlow, ed è disattivato senza l'opzione. Provato rileggendo i file e controllando ogni CRC; mai caricato da TensorFlow stesso.
 
 Gli argomenti sono controllati per intervallo (`--count` 1..10000, `--width`/`--height` 16..4096, `--components` 1..1000, `--defect-rate` 0..1) e le immagini dell'intero dataset sono limitate a 4 GiB: un comando la cui dimensione stimata supera quel limite viene rifiutato con codice di uscita 2 prima di scrivere qualsiasi cosa, così un errore di battitura non può riempire il disco della macchina su cui gira.
 

@@ -8,9 +8,8 @@
 Bounding boxes come directly from the same Component coordinates scene.py
 placed and render.py painted - no detection model in the loop. An object is
 only labelled while at least a third of it is still visible, and a scratch is
-boxed by the pixels it really paints. TFRecord export
-(also promised by the README) is future work - it needs a real TensorFlow
-dependency this v0 deliberately doesn't take on.
+boxed by the pixels it really paints. TFRecord export lives in tfrecord.py
+and needs no TensorFlow: the format is written with the standard library.
 """
 from __future__ import annotations
 
