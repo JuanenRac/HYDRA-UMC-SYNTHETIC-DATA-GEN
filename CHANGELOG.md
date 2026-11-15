@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+
+## [0.1.6]
+
 - **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
 - **A simulation bench for the dataset factory:** `tests/test_simulation_bench.py` runs the command line of the factory for several seeds and every way of writing a dataset and reads the output from the other side (labels against the manifest, splits as a partition, TFRecord against the labels, the same seed giving the same images across formats, layouts and processes), then damages the dataset in twelve seeded ways and requires `verify` to see each one. The workflow "Simulation bench" runs it on every change and `docs/SIMULATION.md` describes it. The manifest now declares the evidence level `simulator`.
 - **The coverage of the tests is measured on every change:** the workflow "Coverage floor" runs the whole suite under line and branch coverage and fails when it falls under 91 %.
@@ -13,6 +16,8 @@ All notable changes to this project are documented here.
 - **TFRecord export, off unless `generate --tfrecord` asks for it, with no TensorFlow dependency.** `src/hydra_umc_synthetic_data_gen/tfrecord.py` writes the TFRecord framing (length, masked CRC-32C of the length, data, masked CRC-32C of the data) and the `tf.train.Example` protocol buffer with the standard library alone, using the keys of the TensorFlow Object Detection API: the encoded image and its format, the size, the file name, and the boxes normalised to [0, 1] with the class name and a class id that starts at 1. The file is `tfrecord/all.tfrecord`, or one file per part (`train`, `val`, `test`) with `--layout ultralytics`; the same seed gives the same bytes, and `read_tfrecord` reads a file back checking every CRC. `tests/test_tfrecord.py` (12 tests) checks the CRC-32C test vectors, the framing, the exact bytes of an Example, a round trip of the three kinds of list, corruption (length, data, truncation), the boxes and class ids against the YOLO labels of the same run, reproducibility and the per-part files; it was never loaded by TensorFlow itself.
 
 - **Holes inside a catalogue part (`"holes": "keep"` next to `"silhouette": "concave"`).** With the option, the boundary loops of the painted part that turn the other way than the outer one, lie inside it and cover at least four cells of the 64 x 64 grid are kept as holes: they are painted with the background (the part no longer hides what is behind a hole), the COCO `segmentation` lists the outline first and then each hole as a ring, `area` counts only the pixels the part paints, and `verify` accepts the extra rings. Off by default (`"ignore"`): a catalogue without the option gives the same dataset as before. A separate piece inside a hole (an island) is not kept.
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.1.5] - The build test of the repository compiles only on CI or when allowed: for the stacks that compile (rust, go, android, flutter, firmware-c), tools/buildtest.py prints BUILDTEST=SKIPPED with exit status 2 on a plain PC, never a... (and 2 more changes)
 
