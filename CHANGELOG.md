@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
 - **A simulation bench for the dataset factory:** `tests/test_simulation_bench.py` runs the command line of the factory for several seeds and every way of writing a dataset and reads the output from the other side (labels against the manifest, splits as a partition, TFRecord against the labels, the same seed giving the same images across formats, layouts and processes), then damages the dataset in twelve seeded ways and requires `verify` to see each one. The workflow "Simulation bench" runs it on every change and `docs/SIMULATION.md` describes it. The manifest now declares the evidence level `simulator`.
 - **The coverage of the tests is measured on every change:** the workflow "Coverage floor" runs the whole suite under line and branch coverage and fails when it falls under 91 %.
 - **The files that shape a dataset are tested at their edges:** `tests/test_scenario_config_edges.py` checks that a registry that is too large, not JSON or not a list, an entry without classes or with a bad input shape, a scenario file with an unknown key, a wrong type, a number out of range, a minimum above its maximum or a zone that is malformed or repeated is refused with the name of the key.
