@@ -263,6 +263,28 @@ def test_safety_dataset_says_what_a_safety_system_should_do(tmp_path: Path) -> N
                 assert record["expected_action"] == "stop"
 
 
+def test_safety_record_follows_the_boxes_after_the_realism_effects(tmp_path: Path) -> None:
+    realism = tmp_path / "realism.json"
+    realism.write_text(json.dumps({"enabled": True, "rotation": {"max_degrees": 25}, "perspective": {"max_shift_fraction": 0.15}}), encoding="utf-8")
+    config = load_safety_config(_safety_file(tmp_path))
+    out = tmp_path / "ds"
+    assert main(["generate", "--out", str(out), "--count", "10", "--seed", "9", "--width", "64", "--height", "64", "--safety-config", str(_safety_file(tmp_path)),
+                 "--realism-config", str(realism)]) == 0
+    zones = json.loads((out / "zones.json").read_text(encoding="utf-8"))
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert main(["verify", "--out", str(out)]) == 0
+    # every person of the record is a person box of the saved image, with the overlaps of that box
+    for scene_entry in manifest["scenes"]:
+        record = zones["images"][scene_entry["image"]]
+        assert len(record["people"]) == scene_entry["label_counts"].get("person", 0)
+        for person in record["people"]:
+            x, y, w, h = person["box"]
+            for zone in config.zones:
+                zx0, zy0, zx1, zy1 = (zone.rect[0] * 64, zone.rect[1] * 64, zone.rect[2] * 64, zone.rect[3] * 64)
+                inter = max(0.0, min(x + w, zx1) - max(x, zx0)) * max(0.0, min(y + h, zy1) - max(y, zy0))
+                assert abs(person["overlap"][zone.name] - round(inter / (w * h), 4)) < 1e-9
+
+
 def test_safety_with_a_model_that_has_no_person_is_refused(tmp_path: Path) -> None:
     registry = _registry(tmp_path, ["gear", "bolt"])
     assert main(["generate", "--out", str(tmp_path / "x"), "--classes-from", str(registry), "--model", "m", "--model-version", "1.0.0",

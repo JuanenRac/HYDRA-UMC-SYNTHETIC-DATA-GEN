@@ -46,6 +46,7 @@ from .scenarios import (
     load_model_classes,
     load_safety_config,
     load_servoing_config,
+    safety_from_scene,
     servoing_scene,
 )
 from .scene import DEFAULT_LABELS, DEFECT_LABEL, FIXED_CLASSES, Scene, generate_scene
@@ -117,7 +118,11 @@ def _make_scene(task: tuple) -> tuple[str, Scene, dict]:
     render = render_png if image_format == "png" else render_bmp
     if realism is not None and realism.enabled:
         # the effects have their own generator, seeded from the scene seed, so the scene itself is the one of a run without them
-        rows, scene = apply_realism(paint_scene(scene), scene, realism, random.Random(_scene_seed(base_seed, index) ^ 0x5EA1157))
+        rows, final_scene = apply_realism(paint_scene(scene), scene, realism, random.Random(_scene_seed(base_seed, index) ^ 0x5EA1157))
+        if final_scene is not scene and plan is not None and plan.safety is not None:
+            # the effects moved the boxes: the record against the zones is read again from the boxes of the image that is saved
+            extra["safety"] = safety_from_scene(final_scene, plan.safety)
+        scene = final_scene
         render(scene, Path(images_dir) / image_name, rows)
     else:
         render(scene, Path(images_dir) / image_name)

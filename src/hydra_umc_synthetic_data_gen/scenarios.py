@@ -433,6 +433,10 @@ def add_people(
     combined = Scene(width, height, scene.background_color, visible_components(scene.components + tuple(people), width, height))
     kept = {(c.x, c.y, c.width, c.height) for c in combined.components if c.label == PERSON_LABEL}
     records = [r for r in records if tuple(r["box"]) in kept]  # type: ignore[arg-type,operator]
+    return combined, {"people": records, "expected_action": _expected_action(records, config)}
+
+
+def _expected_action(records: list[dict[str, object]], config: SafetyConfig) -> str:
     action = "clear"
     for record in records:
         for zone in config.zones:
@@ -441,4 +445,17 @@ def add_people(
                     action = "stop"
                 elif action != "stop":
                     action = "slow"
-    return combined, {"people": records, "expected_action": action}
+    return action
+
+
+def safety_from_scene(scene: Scene, config: SafetyConfig) -> dict[str, object]:
+    """The record of where the people are against the zones, read from the boxes of `scene` as it is: use it after an effect (rotation,
+    perspective) moved the boxes, so the record is the one of the image that is saved."""
+    width, height = scene.width, scene.height
+    rects = {z.name: (z.rect[0] * width, z.rect[1] * height, z.rect[2] * width, z.rect[3] * height) for z in config.zones}
+    records: list[dict[str, object]] = [
+        {"box": [c.x, c.y, c.width, c.height], "overlap": {name: round(_overlap((c.x, c.y, c.width, c.height), rect), 4) for name, rect in rects.items()}}
+        for c in scene.components
+        if c.label == PERSON_LABEL
+    ]
+    return {"people": records, "expected_action": _expected_action(records, config)}
