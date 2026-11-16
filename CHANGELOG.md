@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The safety record (`zones.json`) is read from the boxes of the image that is saved:** with a safety config and the realism effects together, the rotation and the perspective moved the boxes of the people but the record kept the boxes and the overlaps of the scene before them, so a person near the overlap threshold could be labelled with the opposite expected action. The record is now made again from the boxes after the effects (a person that left the image is no longer in it). A dataset without realism is unchanged. Test added that compares the record with the saved boxes.
 
 ## [0.1.6]
 
