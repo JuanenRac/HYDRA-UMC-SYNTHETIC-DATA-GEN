@@ -18,7 +18,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Format-YOLO%20%2F%20COCO-FF6F00.svg" alt="Format">
   <img src="https://img.shields.io/badge/Target-Vision%20AI%20Node-green.svg" alt="Target">
-  <img src="https://img.shields.io/badge/Tests-286%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-287%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.6-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-established-2EA44F.svg" alt="Maturity">
 </p>
@@ -35,7 +35,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.6` |
 | Maturité | Établi |
-| Tests | 286 (`python -m pytest -q tests`) |
+| Tests | 287 (`python -m pytest -q tests`) |
 | Technologie | Python / procedural scene generation / YOLO/COCO annotation export |
 | Cible | Le PC de la personne qui l'utilise |
 | Sur matériel réel | Sans objet : rien ici ne s'exécute sur du matériel |
@@ -51,7 +51,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Domaine | État | Ce que cela veut dire ici |
 |---|---|---|
 | Logiciel | 🟢 | Complet pour son usage et stable ; la vérification d'honnêteté de ce README liste les limites connues |
-| Tests | 🟡 | 286 tests automatiques consignés ; le nombre exact, ou un workflow qui les exécute à chaque modification, n'est pas encore confirmé |
+| Tests | 🟡 | 287 tests automatiques consignés ; le nombre exact, ou un workflow qui les exécute à chaque modification, n'est pas encore confirmé |
 | Matériel réel | ⚪ | Sans objet : rien ici ne s'exécute sur du matériel |
 | Déploiement | 🟠 | Publié comme release ; l'installation sur une machine propre est documentée mais non consignée |
 | Documentation | 🟢 | README en huit langues, vérifié par rapport au manifeste à chaque modification |
@@ -125,7 +125,7 @@ Nécessite Python 3.10 ou plus récent.
 
 ## 🧪 Tests
 
-286 tests automatiques s'exécutent avec `python -m pytest -q tests`. Ils n'ont besoin ni de matériel ni de rien en dehors de cette machine.
+287 tests automatiques s'exécutent avec `python -m pytest -q tests`. Ils n'ont besoin ni de matériel ni de rien en dehors de cette machine.
 
 La CI exécute `HYDRA_UMC_CI=1 python tools/ci_validate.py`, qui vérifie le manifeste, les documents, les huit README et les images.
 
