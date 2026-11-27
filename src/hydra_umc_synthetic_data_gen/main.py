@@ -24,8 +24,10 @@ import math
 import os
 import random
 import json
+import re
 import secrets
 import sys
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
@@ -34,7 +36,7 @@ from typing import cast
 
 from .export import Dataset, export_coco, export_coco_by_split, export_yolo
 from .manifest import build_manifest, write_manifest
-from .realism import RealismError, apply_realism, load_realism_config
+from .realism import RealismError, apply_realism, load_realism_config, parse_realism_config
 from .render import paint_scene, render_bmp, render_png
 from .scenarios import (
     PERSON_LABEL,
@@ -53,7 +55,7 @@ from .scene import DEFAULT_LABELS, DEFECT_LABEL, FIXED_CLASSES, Scene, generate_
 from .shapes import CatalogError, Catalog, Silhouette, load_catalog, top_silhouettes
 from .split import LAYOUTS, SPLIT_FILES, assign_splits, parse_split, split_names, write_splits
 from .tfrecord import export_tfrecord
-from .validate import validate_dataset
+from .validate import ValidationIssue, validate_dataset
 from .verify import verify_output
 
 PROJECT_NAME = "HYDRA-UMC-SYNTHETIC-DATA-GEN"
@@ -345,7 +347,10 @@ def _run_generate(args: argparse.Namespace) -> int:
         layout=args.layout,
         image_parts=image_parts,
         realism=realism.describe() if realism is not None and realism.enabled else None,
-        scenario=scenario,
+        scenario=_with_ambiguous_count(scenario, extras),
+        generator_version=get_version(),
+        image_format=args.image_format,
+        seed_source="given" if args.seed is not None else "drawn",
     )
     write_manifest(manifest, out_dir / "manifest.json")
     _write_extras(out_dir, extras, plan, args.width, args.height)
@@ -374,6 +379,62 @@ def _run_generate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _with_ambiguous_count(scenario: dict | None, extras: dict[str, dict]) -> dict | None:
+    """With the ambiguity band on, the manifest says how many images carry the label, so they can be left out."""
+    if scenario is None or "ambiguous_below" not in scenario.get("safety", {}):
+        return scenario
+    ambiguous = sum(1 for extra in extras.values() if extra.get("safety", {}).get("expected_action") == "ambiguous")
+    return {**scenario, "safety": {**scenario["safety"], "ambiguous_scenes": ambiguous}}
+
+
+def _regenerate_check(out_dir: Path) -> tuple[list[str], list[str]]:
+    """Makes every image of the manifest again from its seed and compares the checksums. Returns (what differs or cannot be done,
+    notes). The manifest is data from outside: every value is checked, and no name of it is used as a path."""
+    try:
+        manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        return [f"manifest.json cannot be read: {error}"], []
+    if not isinstance(manifest, dict):
+        return ["manifest.json is not an object"], []
+    if manifest.get("scenario") is not None:
+        return ["the dataset was made with scenario files (classes, catalogue, servoing or safety) that the manifest does not hold: it cannot be made again from it"], []
+    scenes = manifest.get("scenes")
+    numbers = cast("dict[str, int]", {key: manifest.get(key) for key in ("seed", "width", "height", "requested_components")})
+    rate = manifest.get("defect_rate")
+    if (
+        not isinstance(scenes, list) or not scenes or len(scenes) > MAX_SCENES
+        or any(type(value) is not int for value in numbers.values())
+        or not all(MIN_DIMENSION <= numbers[key] <= MAX_DIMENSION for key in ("width", "height"))
+        or not 1 <= numbers["requested_components"] <= MAX_COMPONENTS
+        or isinstance(rate, bool) or not isinstance(rate, (int, float)) or not 0.0 <= rate <= 1.0
+    ):
+        return ["the manifest does not hold usable generation values"], []
+    realism = None
+    if manifest.get("realism") is not None:
+        try:
+            realism = parse_realism_config(manifest["realism"])
+        except RealismError as error:
+            return [f"the realism settings of the manifest cannot be used: {error}"], []
+    notes: list[str] = []
+    made_with = manifest.get("generator_version")
+    if made_with != get_version():
+        notes.append(f"the dataset was made with version {made_with or 'unknown'} and this is {get_version()}: a difference may come from that")
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="hydra-regen-") as work:
+        for scene in scenes:
+            name = str(scene.get("image")) if isinstance(scene, dict) else ""
+            match = re.fullmatch(r"scene_(\d{4,5})\.(bmp|png)", name)
+            if match is None:
+                problems.append(f"{name!r}: not a name this generator writes")
+                continue
+            task = (numbers["seed"], int(match[1]), numbers["width"], numbers["height"], numbers["requested_components"], float(rate), work, match[2], realism, None)
+            made, _, _ = _make_scene(task)
+            if made != name or hashlib.sha256((Path(work) / made).read_bytes()).hexdigest() != scene.get("sha256"):
+                problems.append(f"{name}: made again from the seed, the image is not the one the manifest checksummed")
+            (Path(work) / made).unlink()
+    return problems, notes
+
+
 def _write_extras(out_dir: Path, extras: dict[str, dict], plan: ScenePlan | None, width: int, height: int) -> None:
     """poses.json (servoing) and zones.json (safety) next to the manifest; nothing is written for a plain dataset."""
     if plan is None:
@@ -390,6 +451,7 @@ def _write_extras(out_dir: Path, extras: dict[str, dict], plan: ScenePlan | None
         zones_payload = {
             "zones": [{"name": z.name, "kind": z.kind, "rect": list(z.rect)} for z in plan.safety.zones],
             "min_overlap": plan.safety.min_overlap,
+            **({"ambiguous_below": plan.safety.ambiguous_below} if plan.safety.ambiguous_below is not None else {}),
             "images": {name: extra.get("safety", {"people": [], "expected_action": "clear"}) for name, extra in extras.items()},
         }
         with open(out_dir / "zones.json", "w", encoding="utf-8", newline="\n") as handle:
@@ -455,6 +517,11 @@ def _run_calibration(args: argparse.Namespace) -> int:
 
 def _run_verify(args: argparse.Namespace) -> int:
     issues = verify_output(args.out)
+    if args.regenerate:
+        problems, notes = _regenerate_check(args.out)
+        for note in notes:
+            print(f"note: {note}")
+        issues = list(issues) + [ValidationIssue("not_reproduced", problem) for problem in problems]
     if issues:
         print(f"VERIFY=FAIL {len(issues)} issue(s) in {args.out}:")
         for issue in issues:
@@ -553,6 +620,10 @@ def build_parser() -> argparse.ArgumentParser:
         "verify", help="Read a dataset folder back and check it against its own manifest (images, labels, annotations, classes)."
     )
     verify_parser.add_argument("--out", type=Path, required=True, help="The dataset folder to check.")
+    verify_parser.add_argument(
+        "--regenerate", action="store_true",
+        help="Also make every image again from the seed of the manifest and compare the checksums (not for a dataset made with scenario files).",
+    )
 
     return parser
 

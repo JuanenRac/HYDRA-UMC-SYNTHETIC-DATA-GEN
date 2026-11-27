@@ -60,6 +60,11 @@ class DatasetManifest:
     realism: dict | None = None
     # where the classes, the parts and the extra annotations came from (names, sizes and checksums, never a path)
     scenario: dict | None = None
+    # what the images were made with, so they can be made again and compared (`verify --regenerate`)
+    generator_version: str = ""
+    image_format: str = ""
+    # "given" (--seed) or "drawn" (picked at random and recorded)
+    seed_source: str = ""
 
     @property
     def is_clean(self) -> bool:
@@ -98,6 +103,9 @@ def build_manifest(
     image_parts: dict[str, str] | None = None,
     realism: dict | None = None,
     scenario: dict | None = None,
+    generator_version: str = "",
+    image_format: str = "",
+    seed_source: str = "",
 ) -> DatasetManifest:
     scene_entries = tuple(
         SceneManifestEntry(
@@ -127,6 +135,9 @@ def build_manifest(
         layout=layout,
         realism=realism,
         scenario=scenario,
+        generator_version=generator_version,
+        image_format=image_format,
+        seed_source=seed_source,
     )
 
 
@@ -163,5 +174,8 @@ def write_manifest(manifest: DatasetManifest, path: Path) -> None:
         payload["realism"] = manifest.realism
     if manifest.scenario is not None:
         payload["scenario"] = manifest.scenario
+    for key in ("generator_version", "image_format", "seed_source"):
+        if getattr(manifest, key):
+            payload[key] = getattr(manifest, key)
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, indent=2))

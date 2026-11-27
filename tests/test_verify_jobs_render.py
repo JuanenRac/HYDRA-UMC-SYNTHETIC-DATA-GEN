@@ -200,3 +200,29 @@ def test_a_folder_without_a_manifest_is_reported_not_a_crash(tmp_path: Path, cap
     assert main(["verify", "--out", str(tmp_path)]) == 1
     (tmp_path / "manifest.json").write_text("not json", encoding="utf-8")
     assert verify_output(tmp_path)[0].kind == "missing_manifest"
+
+
+def test_verify_regenerate_makes_the_same_images_and_names_a_changed_one(tmp_path: Path, capsys) -> None:
+    digests = {}
+    for jobs in ("1", "4"):
+        out = tmp_path / f"jobs{jobs}"
+        assert main(["generate", "--out", str(out), "--count", "3", "--width", "64", "--height", "48", "--seed", "11", "--jobs", jobs]) == 0
+        manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+        assert manifest["seed_source"] == "given" and manifest["image_format"] == "bmp" and manifest["generator_version"]
+        digests[jobs] = [scene["sha256"] for scene in manifest["scenes"]]
+        assert main(["verify", "--out", str(out), "--regenerate"]) == 0
+    assert digests["1"] == digests["4"]
+    out = tmp_path / "jobs1"
+    image = out / "images" / "scene_0001.bmp"
+    data = bytearray(image.read_bytes())
+    data[-1] ^= 1
+    image.write_bytes(bytes(data))
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    # the checksum is rewritten to match the altered file: only making it again can tell
+    manifest["scenes"][1]["sha256"] = hashlib.sha256(bytes(data)).hexdigest()
+    (out / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    capsys.readouterr()
+    assert main(["verify", "--out", str(out)]) == 0
+    assert main(["verify", "--out", str(out), "--regenerate"]) == 1
+    printed = capsys.readouterr().out
+    assert "scene_0001.bmp" in printed and "not_reproduced" in printed and "scene_0000.bmp:" not in printed
