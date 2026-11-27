@@ -315,3 +315,19 @@ def test_verify_notices_a_missing_or_wrong_extra_file(tmp_path: Path, catalog_di
     assert main(["verify", "--out", str(out)]) == 1
     zones.unlink()
     assert main(["verify", "--out", str(out)]) == 1
+
+
+def test_an_overlap_inside_the_band_is_ambiguous_only_when_the_band_is_set() -> None:
+    from dataclasses import replace
+
+    from hydra_umc_synthetic_data_gen.scenarios import SafetyConfig, Zone, _expected_action
+
+    config = SafetyConfig(enabled=True, zones=(Zone("cell", "stop", (0.0, 0.0, 0.5, 1.0)), Zone("aisle", "slow", (0.5, 0.0, 1.0, 1.0))))
+    records = [{"overlap": {"cell": 0.1, "aisle": 0.0}}]
+    assert _expected_action(records, config) == "clear"
+    banded = replace(config, ambiguous_below=0.02)
+    assert _expected_action(records, banded) == "ambiguous"
+    # certainly slow and perhaps stop is ambiguous; certainly stop stays stop; perhaps slow under a certain slow stays slow
+    assert _expected_action([{"overlap": {"cell": 0.1, "aisle": 0.9}}], banded) == "ambiguous"
+    assert _expected_action([{"overlap": {"cell": 0.9, "aisle": 0.1}}], banded) == "stop"
+    assert _expected_action([{"overlap": {"cell": 0.0, "aisle": 0.5}}, {"overlap": {"cell": 0.0, "aisle": 0.1}}], banded) == "slow"

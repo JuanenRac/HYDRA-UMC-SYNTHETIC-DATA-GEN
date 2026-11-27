@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **"Same seed, same bytes" can be checked:** the manifest records `generator_version`, `image_format` and `seed_source` (`given` or `drawn`), and `verify --regenerate` makes every image again from the seed and names the ones that differ (with a note when the generator version is another). A dataset made with scenario files cannot be made again from its manifest and says so. Tests added.
+- **A band of ambiguity for the safety labels:** with `ambiguous_below` in the safety config (absent by default), an overlap between it and `min_overlap` that would mean a stricter action is labelled `expected_action: "ambiguous"`, and the manifest counts those images. Test added.
 - **The safety record (`zones.json`) is read from the boxes of the image that is saved:** with a safety config and the realism effects together, the rotation and the perspective moved the boxes of the people but the record kept the boxes and the overlaps of the scene before them, so a person near the overlap threshold could be labelled with the opposite expected action. The record is now made again from the boxes after the effects (a person that left the image is no longer in it). A dataset without realism is unchanged. Test added that compares the record with the saved boxes.
 
 ## [0.1.6]

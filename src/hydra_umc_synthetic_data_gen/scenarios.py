@@ -336,16 +336,20 @@ class SafetyConfig:
     max_height_fraction: float = 0.5
     in_zone_probability: float = 0.5
     min_overlap: float = 0.2
+    # an overlap from here up to min_overlap is labelled "ambiguous"; None (the default): no such label
+    ambiguous_below: float | None = None
 
     def describe(self) -> dict[str, object]:
+        band = {"ambiguous_below": self.ambiguous_below} if self.ambiguous_below is not None else {}
         return {
+            **band,
             "zones": [{"name": z.name, "kind": z.kind, "rect": list(z.rect)} for z in self.zones], "people": [self.min_people, self.max_people],
             "height_fraction": [self.min_height_fraction, self.max_height_fraction], "min_overlap": self.min_overlap,
         }
 
 
 def load_safety_config(path: str | Path) -> SafetyConfig:
-    data = _read_section(path, {"enabled", "zones", "people", "height_fraction", "in_zone_probability", "min_overlap"}, "safety config")
+    data = _read_section(path, {"enabled", "zones", "people", "height_fraction", "in_zone_probability", "min_overlap", "ambiguous_below"}, "safety config")
     enabled = data.get("enabled", False)
     if not isinstance(enabled, bool):
         raise ScenarioError("safety config.enabled must be true or false")
@@ -380,7 +384,10 @@ def load_safety_config(path: str | Path) -> SafetyConfig:
         max_height_fraction=_number(height, "max", 0.5, 0.05, 1.0, "safety config.height_fraction"),
         in_zone_probability=_number(data, "in_zone_probability", 0.5, 0.0, 1.0, "safety config"),
         min_overlap=_number(data, "min_overlap", 0.2, 0.01, 1.0, "safety config"),
+        ambiguous_below=_number(data, "ambiguous_below", 0.01, 0.001, 1.0, "safety config") if "ambiguous_below" in data else None,
     )
+    if config.ambiguous_below is not None and config.ambiguous_below >= config.min_overlap:
+        raise ScenarioError("safety config: ambiguous_below must be below min_overlap")
     if config.min_people > config.max_people or config.min_height_fraction > config.max_height_fraction:
         raise ScenarioError("safety config: a minimum is above its maximum")
     if enabled and not config.zones:
@@ -437,15 +444,23 @@ def add_people(
 
 
 def _expected_action(records: list[dict[str, object]], config: SafetyConfig) -> str:
-    action = "clear"
-    for record in records:
-        for zone in config.zones:
-            if record["overlap"][zone.name] >= config.min_overlap:  # type: ignore[index]
-                if zone.kind == "stop":
-                    action = "stop"
-                elif action != "stop":
-                    action = "slow"
-    return action
+    severity = {"clear": 0, "slow": 1, "stop": 2}
+
+    def worst(threshold: float) -> str:
+        action = "clear"
+        for record in records:
+            for zone in config.zones:
+                if record["overlap"][zone.name] >= threshold:  # type: ignore[index]
+                    kind = "stop" if zone.kind == "stop" else "slow"
+                    if severity[kind] > severity[action]:
+                        action = kind
+        return action
+
+    certain = worst(config.min_overlap)
+    # inside the band a more severe action is possible but not certain: the image is labelled as such
+    if config.ambiguous_below is not None and severity[worst(config.ambiguous_below)] > severity[certain]:
+        return "ambiguous"
+    return certain
 
 
 def safety_from_scene(scene: Scene, config: SafetyConfig) -> dict[str, object]:
