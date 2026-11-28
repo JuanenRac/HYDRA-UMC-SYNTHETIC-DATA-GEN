@@ -338,6 +338,8 @@ Every option below is off unless it is given.
 
 A servoing or safety file whose `enabled` is not `true` is read, checked and ignored. `verify --out DIR` checks that `poses.json` and `zones.json` describe exactly the images of the manifest. An option that cannot be used exits with `2` before any file is written.
 
+`verify --out DIR --regenerate` makes every image again from the seed of the manifest and compares the checksums. For a dataset made with scenario files, give the same files with `--classes-from`, `--catalog`, `--servoing-config` and `--safety-config`: the manifest records the checksum of each (never a path), and a missing, extra or different file is named. The mesh files of a catalogue are not checksummed: a changed mesh shows up as images that differ.
+
 ## Exit codes
 
 | Code | Meaning |
