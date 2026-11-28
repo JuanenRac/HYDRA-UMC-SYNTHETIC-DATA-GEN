@@ -65,6 +65,8 @@ class DatasetManifest:
     image_format: str = ""
     # "given" (--seed) or "drawn" (picked at random and recorded)
     seed_source: str = ""
+    # sha256 of the scenario files given, by option name, so `verify --regenerate` can tell it is given the same files
+    scenario_files: dict | None = None
 
     @property
     def is_clean(self) -> bool:
@@ -106,6 +108,7 @@ def build_manifest(
     generator_version: str = "",
     image_format: str = "",
     seed_source: str = "",
+    scenario_files: dict | None = None,
 ) -> DatasetManifest:
     scene_entries = tuple(
         SceneManifestEntry(
@@ -138,6 +141,7 @@ def build_manifest(
         generator_version=generator_version,
         image_format=image_format,
         seed_source=seed_source,
+        scenario_files=scenario_files,
     )
 
 
@@ -174,6 +178,8 @@ def write_manifest(manifest: DatasetManifest, path: Path) -> None:
         payload["realism"] = manifest.realism
     if manifest.scenario is not None:
         payload["scenario"] = manifest.scenario
+    if manifest.scenario_files:
+        payload["scenario_files"] = manifest.scenario_files
     for key in ("generator_version", "image_format", "seed_source"):
         if getattr(manifest, key):
             payload[key] = getattr(manifest, key)

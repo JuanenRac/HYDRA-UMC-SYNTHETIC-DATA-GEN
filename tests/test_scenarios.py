@@ -285,6 +285,26 @@ def test_safety_record_follows_the_boxes_after_the_realism_effects(tmp_path: Pat
                 assert abs(person["overlap"][zone.name] - round(inter / (w * h), 4)) < 1e-9
 
 
+def test_a_dataset_made_with_a_scenario_file_is_made_again_from_the_same_file(tmp_path: Path, capsys) -> None:
+    out = tmp_path / "set"
+    safety = _safety_file(tmp_path)
+    assert main(["generate", "--out", str(out), "--count", "4", "--seed", "4", "--safety-config", str(safety)]) == 0
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert set(manifest["scenario_files"]) == {"safety_config"}
+    assert main(["verify", "--out", str(out), "--regenerate", "--safety-config", str(safety)]) == 0
+    capsys.readouterr()
+    assert main(["verify", "--out", str(out), "--regenerate"]) == 1
+    assert "--safety-config" in capsys.readouterr().out
+    assert main(["verify", "--out", str(out), "--regenerate", "--safety-config", str(safety), "--catalog", str(safety)]) == 1
+    assert "made without it" in capsys.readouterr().out
+    safety.write_text(safety.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    assert main(["verify", "--out", str(out), "--regenerate", "--safety-config", str(safety)]) == 1
+    assert "checksum differs" in capsys.readouterr().out
+    manifest.pop("scenario_files")
+    (out / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert main(["verify", "--out", str(out), "--regenerate", "--safety-config", str(safety)]) == 1
+
+
 def test_safety_with_a_model_that_has_no_person_is_refused(tmp_path: Path) -> None:
     registry = _registry(tmp_path, ["gear", "bolt"])
     assert main(["generate", "--out", str(tmp_path / "x"), "--classes-from", str(registry), "--model", "m", "--model-version", "1.0.0",

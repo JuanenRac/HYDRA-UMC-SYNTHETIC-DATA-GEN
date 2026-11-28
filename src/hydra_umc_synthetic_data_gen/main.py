@@ -351,6 +351,7 @@ def _run_generate(args: argparse.Namespace) -> int:
         generator_version=get_version(),
         image_format=args.image_format,
         seed_source="given" if args.seed is not None else "drawn",
+        scenario_files=_scenario_file_hashes(args) if plan is not None else None,
     )
     write_manifest(manifest, out_dir / "manifest.json")
     _write_extras(out_dir, extras, plan, args.width, args.height)
@@ -387,7 +388,56 @@ def _with_ambiguous_count(scenario: dict | None, extras: dict[str, dict]) -> dic
     return {**scenario, "safety": {**scenario["safety"], "ambiguous_scenes": ambiguous}}
 
 
-def _regenerate_check(out_dir: Path) -> tuple[list[str], list[str]]:
+# The optional files of `generate` that change what the images hold, by the name of their option (the manifest records their checksums).
+SCENARIO_FILE_OPTIONS = ("classes_from", "catalog", "servoing_config", "safety_config")
+
+
+def _scenario_file_hashes(args: argparse.Namespace) -> dict[str, str]:
+    """sha256 of every scenario file given, by option name; never a path."""
+    return {
+        name: hashlib.sha256(Path(getattr(args, name)).read_bytes()).hexdigest()
+        for name in SCENARIO_FILE_OPTIONS if getattr(args, name, None) is not None
+    }
+
+
+def _scenario_plan_again(manifest: dict, files: argparse.Namespace | None) -> tuple[ScenePlan | None, list[str]]:
+    """The plan of a dataset made with scenario files, read again from the files given to `verify`, which must be the very files (checksum)."""
+    scenario, recorded = manifest.get("scenario"), manifest.get("scenario_files")
+    if not isinstance(scenario, dict) or not isinstance(recorded, dict) or not recorded or set(recorded) - set(SCENARIO_FILE_OPTIONS):
+        return None, ["the dataset was made with scenario files whose checksums the manifest does not hold: it cannot be made again from it"]
+    problems: list[str] = []
+    given = argparse.Namespace(model=None, model_version=None, **{name: getattr(files, name, None) for name in SCENARIO_FILE_OPTIONS})
+    for name in SCENARIO_FILE_OPTIONS:
+        path, option = getattr(given, name), "--" + name.replace("_", "-")
+        if name not in recorded:
+            if path is not None:
+                problems.append(f"{option}: the dataset was made without it")
+            continue
+        if path is None:
+            problems.append(f"{option}: the dataset was made with this file; give it to make the images again")
+            continue
+        try:
+            same = hashlib.sha256(Path(path).read_bytes()).hexdigest() == recorded[name]
+        except OSError as error:
+            problems.append(f"{option}: cannot be read ({error.__class__.__name__})")
+            continue
+        if not same:
+            problems.append(f"{option}: this is not the file the dataset was made with (the checksum differs)")
+    if problems:
+        return None, problems
+    if given.classes_from is not None:
+        model = scenario.get("classes_from")
+        if not isinstance(model, dict) or not isinstance(model.get("model"), str) or not isinstance(model.get("version"), str):
+            return None, ["the manifest does not say which model the classes came from"]
+        given.model, given.model_version = model["model"], model["version"]
+    errors: list[str] = []
+    plan, _, _ = _resolve_scenarios(given, errors)
+    if errors or plan is None:
+        return None, errors or ["the scenario files change nothing now"]
+    return plan, []
+
+
+def _regenerate_check(out_dir: Path, files: argparse.Namespace | None = None) -> tuple[list[str], list[str]]:
     """Makes every image of the manifest again from its seed and compares the checksums. Returns (what differs or cannot be done,
     notes). The manifest is data from outside: every value is checked, and no name of it is used as a path."""
     try:
@@ -396,8 +446,11 @@ def _regenerate_check(out_dir: Path) -> tuple[list[str], list[str]]:
         return [f"manifest.json cannot be read: {error}"], []
     if not isinstance(manifest, dict):
         return ["manifest.json is not an object"], []
+    plan: ScenePlan | None = None
     if manifest.get("scenario") is not None:
-        return ["the dataset was made with scenario files (classes, catalogue, servoing or safety) that the manifest does not hold: it cannot be made again from it"], []
+        plan, refused = _scenario_plan_again(manifest, files)
+        if refused:
+            return refused, []
     scenes = manifest.get("scenes")
     numbers = cast("dict[str, int]", {key: manifest.get(key) for key in ("seed", "width", "height", "requested_components")})
     rate = manifest.get("defect_rate")
@@ -427,7 +480,7 @@ def _regenerate_check(out_dir: Path) -> tuple[list[str], list[str]]:
             if match is None:
                 problems.append(f"{name!r}: not a name this generator writes")
                 continue
-            task = (numbers["seed"], int(match[1]), numbers["width"], numbers["height"], numbers["requested_components"], float(rate), work, match[2], realism, None)
+            task = (numbers["seed"], int(match[1]), numbers["width"], numbers["height"], numbers["requested_components"], float(rate), work, match[2], realism, plan)
             made, _, _ = _make_scene(task)
             if made != name or hashlib.sha256((Path(work) / made).read_bytes()).hexdigest() != scene.get("sha256"):
                 problems.append(f"{name}: made again from the seed, the image is not the one the manifest checksummed")
@@ -518,7 +571,7 @@ def _run_calibration(args: argparse.Namespace) -> int:
 def _run_verify(args: argparse.Namespace) -> int:
     issues = verify_output(args.out)
     if args.regenerate:
-        problems, notes = _regenerate_check(args.out)
+        problems, notes = _regenerate_check(args.out, args)
         for note in notes:
             print(f"note: {note}")
         issues = list(issues) + [ValidationIssue("not_reproduced", problem) for problem in problems]
@@ -622,8 +675,10 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--out", type=Path, required=True, help="The dataset folder to check.")
     verify_parser.add_argument(
         "--regenerate", action="store_true",
-        help="Also make every image again from the seed of the manifest and compare the checksums (not for a dataset made with scenario files).",
+        help="Also make every image again from the seed of the manifest and compare the checksums. A dataset made with scenario files needs the same files again.",
     )
+    for option in SCENARIO_FILE_OPTIONS:
+        verify_parser.add_argument("--" + option.replace("_", "-"), default=None, metavar="FILE", help="With --regenerate: the same file the dataset was generated with.")
 
     return parser
 
